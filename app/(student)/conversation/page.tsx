@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/context/SessionContext";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -24,6 +25,8 @@ export default function ConversationPage() {
   const [missionComplete, setMissionComplete] = useState(false);
   const [floatScore, setFloatScore] = useState<number | null>(null);
   const [voiceError, setVoiceError] = useState("");
+  const [muted, setMuted] = useState(false);
+  const { play: playTTS, playing: ttsPlaying } = useAudioPlayer();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -77,6 +80,11 @@ export default function ConversationPage() {
 
       setMessages((prev) => [...prev, { role: "character", text: data.characterReply }]);
 
+      // Speak the character's reply via ElevenLabs
+      if (!muted) {
+        playTTS(data.characterReply, session.voiceEnvKey);
+      }
+
       if (data.pointsEarned > 0) {
         addPoints(data.pointsEarned);
         setFloatScore(data.pointsEarned);
@@ -122,6 +130,25 @@ export default function ConversationPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMuted((m) => !m)}
+            aria-label={muted ? "Unmute character voice" : "Mute character voice"}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all"
+          >
+            {muted ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2L4 5H1v6h3l4 3V2Z" fill="white" opacity="0.4"/>
+                <line x1="11" y1="5" x2="15" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="15" y1="5" x2="11" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2L4 5H1v6h3l4 3V2Z" fill="white" opacity="0.9"/>
+                <path d="M11 5.5a3.5 3.5 0 010 5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.9"/>
+                <path d="M13 3.5a6 6 0 010 9" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5"/>
+              </svg>
+            )}
+          </button>
           <span className="text-2xl" style={{ animation: "mood-pulse 0.4s ease" }} key={session.mood}>
             {session.mood}
           </span>

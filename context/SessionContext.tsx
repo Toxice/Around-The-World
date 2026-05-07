@@ -13,7 +13,7 @@ interface SessionState {
   character: string;
   characterEmoji: string;
   missionText: string;
-  voiceId: string;
+  voiceEnvKey: string;
   score: number;
   mood: string;
   badges: string[];
@@ -24,7 +24,7 @@ interface SessionContextValue {
   setStudentInfo: (studentCode: string, studentId: string) => void;
   setLocation: (code: string, name: string, flag: string) => void;
   setSituation: (situation: string) => void;
-  startSession: (sessionId: string, character: string, characterEmoji: string, missionText: string, voiceId: string) => void;
+  startSession: (sessionId: string, character: string, characterEmoji: string, missionText: string, voiceEnvKey: string) => void;
   addPoints: (points: number) => void;
   setMood: (mood: string) => void;
   addBadge: (badge: string) => void;
@@ -42,7 +42,7 @@ const DEFAULT_STATE: SessionState = {
   character: "",
   characterEmoji: "",
   missionText: "",
-  voiceId: "",
+  voiceEnvKey: "",
   score: 0,
   mood: "😊",
   badges: [],
@@ -66,8 +66,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const startSession = useCallback(
-    (sessionId: string, character: string, characterEmoji: string, missionText: string, voiceId: string) => {
-      setSession((s) => ({ ...s, sessionId, character, characterEmoji, missionText, voiceId, score: 0, mood: "😊", badges: [] }));
+    (sessionId: string, character: string, characterEmoji: string, missionText: string, voiceEnvKey: string) => {
+      setSession((s) => ({ ...s, sessionId, character, characterEmoji, missionText, voiceEnvKey, score: 0, mood: "😊", badges: [] }));
     },
     []
   );

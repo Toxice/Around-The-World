@@ -21,11 +21,12 @@ export async function completeSession(
   id: string,
   totalScore: number,
   finalConfidence: number,
-  turnCount: number
+  turnCount: number,
+  finalTeacherBrief?: string
 ) {
   return prisma.session.update({
     where: { id },
-    data: { completedAt: new Date(), totalScore, finalConfidence, turnCount },
+    data: { completedAt: new Date(), totalScore, finalConfidence, turnCount, finalTeacherBrief },
   });
 }
 

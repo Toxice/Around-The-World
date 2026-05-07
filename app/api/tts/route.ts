@@ -3,25 +3,30 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text, voiceId } = body as { text: string; voiceId?: string };
+    const { text, voiceKey } = body as { text: string; voiceKey?: string };
 
     if (!text) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // Mock mode: return empty audio indicator
+    // Mock mode: signal the client to skip audio playback
     if (process.env.MOCK_AI === "true") {
-      return NextResponse.json({ audioUrl: null, mock: true });
+      return NextResponse.json({ mock: true });
     }
 
     const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
-    const voice = voiceId ?? process.env.ELEVENLABS_DEFAULT_VOICE ?? "21m00Tcm4TlvDq8ikWAM";
-
     if (!elevenLabsKey) {
       return NextResponse.json({ error: "TTS not configured" }, { status: 503 });
     }
 
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
+    // Resolve voiceKey ("ELEVENLABS_VOICE_UK_WAITER") → actual voice ID from env
+    // Falls back to ELEVENLABS_DEFAULT_VOICE, then to ElevenLabs' built-in "Rachel"
+    const voiceId =
+      (voiceKey ? process.env[voiceKey] : undefined) ??
+      process.env.ELEVENLABS_DEFAULT_VOICE ??
+      "21m00Tcm4TlvDq8ikWAM";
+
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",
       headers: {
         "xi-api-key": elevenLabsKey,
@@ -36,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error("ElevenLabs error:", res.status);
+      console.error("ElevenLabs error:", res.status, await res.text());
       return NextResponse.json({ error: "TTS service error" }, { status: 502 });
     }
 

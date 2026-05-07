@@ -22,9 +22,10 @@ model Session {
   missionText     String
   startedAt       DateTime      @default(now())
   completedAt     DateTime?
-  totalScore      Int           @default(0)
-  finalConfidence Float?
-  turnCount       Int           @default(0)
+  totalScore        Int           @default(0)
+  finalConfidence   Float?
+  turnCount         Int           @default(0)
+  finalTeacherBrief String?
   student         Student       @relation(fields: [studentId], references: [id])
   turns           SessionTurn[]
   badges          SessionBadge[]
