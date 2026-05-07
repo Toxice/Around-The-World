@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "dev": "prisma migrate deploy && next dev",
     "build": "next build",
     "postbuild": "prisma migrate deploy",
