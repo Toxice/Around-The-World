@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "node scripts/setup.mjs",
-    "dev": "prisma migrate deploy && next dev",
+    "dev": "node scripts/dev.mjs",
     "build": "next build",
     "postbuild": "prisma migrate deploy",
     "start": "next start",
