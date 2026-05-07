@@ -115,6 +115,11 @@ body {
   }
 }
 
+/* ─── Safe-area utilities ────────────────────────────────────────────── */
+.pt-safe {
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+}
+
 /* ─── Scrollbar (webkit) ─────────────────────────────────────────────── */
 .chat-scroll::-webkit-scrollbar { width: 4px; }
 .chat-scroll::-webkit-scrollbar-track { background: transparent; }
