@@ -1,49 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
 
+function pcmToWav(pcmBase64: string, sampleRate = 24000): Buffer {
+  const pcm = Buffer.from(pcmBase64, "base64");
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcm.length, 40);
+
+  return Buffer.concat([header, pcm]);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text, voiceId } = body as { text: string; voiceId?: string };
+    const { text } = body as { text: string };
 
     if (!text) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // Mock mode: return empty audio indicator
     if (process.env.MOCK_AI === "true") {
-      return NextResponse.json({ audioUrl: null, mock: true });
+      return NextResponse.json({ mock: true });
     }
 
-    const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
-    const voice = voiceId ?? process.env.ELEVENLABS_DEFAULT_VOICE ?? "21m00Tcm4TlvDq8ikWAM";
-
-    if (!elevenLabsKey) {
+    const geminiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
+    if (!geminiKey) {
       return NextResponse.json({ error: "TTS not configured" }, { status: 503 });
     }
 
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": elevenLabsKey,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } },
+            },
+          },
+        }),
+      }
+    );
 
     if (!res.ok) {
-      console.error("ElevenLabs error:", res.status);
+      console.error("Gemini TTS error:", res.status, await res.text());
       return NextResponse.json({ error: "TTS service error" }, { status: 502 });
     }
 
-    const audioBuffer = await res.arrayBuffer();
-    return new NextResponse(audioBuffer, {
+    const data = await res.json();
+    const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+    if (!inlineData?.data) {
+      return NextResponse.json({ error: "No audio in response" }, { status: 502 });
+    }
+
+    const wav = pcmToWav(inlineData.data);
+
+    return new NextResponse(wav, {
       headers: {
-        "Content-Type": "audio/mpeg",
+        "Content-Type": "audio/wav",
         "Cache-Control": "no-store",
       },
     });
