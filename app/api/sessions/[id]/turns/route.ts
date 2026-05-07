@@ -4,7 +4,7 @@ import { createTurn } from "@/lib/db/repositories/turnRepository";
 import { createBadge } from "@/lib/db/repositories/badgeRepository";
 import { getMockAiResponse } from "@/lib/mock/mockAiResponse";
 import { ClaudeResponse } from "@/types";
-import { buildSystemPrompt, AI_MODEL, AI_TEMPERATURE } from "@/lib/config/ai";
+import { selectSystemPrompt, AI_MODEL, AI_TEMPERATURE } from "@/lib/config/ai";
 import { z } from "zod";
 
 const schema = z.object({
@@ -41,7 +41,7 @@ export async function POST(
         return NextResponse.json({ error: "AI not configured" }, { status: 503 });
       }
 
-      const systemPrompt = buildSystemPrompt({
+      const systemPrompt = selectSystemPrompt({
         character: session.character,
         location: session.location,
         situation: session.situation,
