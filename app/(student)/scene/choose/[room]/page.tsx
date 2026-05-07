@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
+import { useSession } from "@/context/SessionContext";
 
 const ROOM_META: Record<string, { title: string; icon: string; accent: string }> = {
   "3d-printing": { title: "3D Printing", icon: "🖨️", accent: "#A78BFA" },
@@ -9,7 +11,32 @@ const ROOM_META: Record<string, { title: string; icon: string; accent: string }>
   "python":      { title: "Programming in Python", icon: "🐍", accent: "#22D3EE" },
 };
 
-function PrintingRoom({ onStartConversation }: { onStartConversation: () => void }) {
+const ROOM_SESSION: Record<string, {
+  location: string; situation: string;
+  character: string; characterEmoji: string;
+  missionText: string; voiceEnvKey: string;
+}> = {
+  "3d-printing": {
+    location: "United States", situation: "School",
+    character: "Ms. Rivera", characterEmoji: "👩‍🏫",
+    missionText: "Talk to your teacher about your 3D printing project.",
+    voiceEnvKey: "ELEVENLABS_VOICE_US_TEACHER",
+  },
+  "robotics": {
+    location: "United States", situation: "School",
+    character: "Mr. Chen", characterEmoji: "👨‍🏫",
+    missionText: "Discuss your robotics project with your teacher.",
+    voiceEnvKey: "ELEVENLABS_VOICE_US_TEACHER",
+  },
+  "python": {
+    location: "United States", situation: "School",
+    character: "Ms. Johnson", characterEmoji: "👩‍💻",
+    missionText: "Ask your teacher for help with your Python assignment.",
+    voiceEnvKey: "ELEVENLABS_VOICE_US_TEACHER",
+  },
+};
+
+function PrintingRoom({ onStartConversation, loading }: { onStartConversation: () => void; loading: boolean }) {
   return (
     <div className="relative flex-1 overflow-hidden">
       {/* Classroom background */}
@@ -32,7 +59,8 @@ function PrintingRoom({ onStartConversation }: { onStartConversation: () => void
       {/* Clickable character — positioned bottom-centre */}
       <button
         onClick={onStartConversation}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group"
+        disabled={loading}
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group disabled:opacity-60 disabled:cursor-wait"
         aria-label="Talk to the teacher"
       >
         {/* Speech bubble hint */}
@@ -111,12 +139,35 @@ function GenericRoom({ meta }: { meta: { title: string; icon: string; accent: st
 export default function RoomPage() {
   const router = useRouter();
   const params = useParams();
+  const { session, startSession } = useSession();
+  const [loading, setLoading] = useState(false);
   const roomId = typeof params.room === "string" ? params.room : "";
   const meta = ROOM_META[roomId] ?? { title: roomId, icon: "💬", accent: "#48CAE4" };
   const is3DPrinting = roomId === "3d-printing";
 
-  function handleStartConversation() {
-    router.push("/conversation");
+  async function handleStartConversation() {
+    const cfg = ROOM_SESSION[roomId];
+    if (!cfg) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentCode: session.studentCode,
+          location: cfg.location,
+          situation: cfg.situation,
+          character: cfg.character,
+          missionText: cfg.missionText,
+        }),
+      });
+      if (!res.ok) { setLoading(false); return; }
+      const { sessionId } = await res.json();
+      startSession(sessionId, cfg.character, cfg.characterEmoji, cfg.missionText, cfg.voiceEnvKey);
+      router.push("/conversation");
+    } catch {
+      setLoading(false);
+    }
   }
 
   return (
@@ -164,7 +215,7 @@ export default function RoomPage() {
 
       {/* Room content */}
       {is3DPrinting ? (
-        <PrintingRoom onStartConversation={handleStartConversation} />
+        <PrintingRoom onStartConversation={handleStartConversation} loading={loading} />
       ) : (
         <GenericRoom meta={meta} />
       )}
