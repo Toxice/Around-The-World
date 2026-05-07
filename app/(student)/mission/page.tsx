@@ -55,7 +55,7 @@ export default function MissionPage() {
         scenario!.character,
         scenario!.characterEmoji,
         mission,
-        process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID ?? ""
+        scenario!.voiceEnvKey
       );
       router.push("/conversation");
     } catch {

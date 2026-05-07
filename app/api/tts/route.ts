@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text } = body as { text: string };
+    const { text, voiceKey } = body as { text: string; voiceKey?: string };
 
     if (!text) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
@@ -18,7 +18,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "TTS not configured" }, { status: 503 });
     }
 
-    const voiceId = process.env.ELEVENLABS_DEFAULT_VOICE ?? "21m00Tcm4TlvDq8ikWAM";
+    const voiceId =
+      (voiceKey ? process.env[voiceKey] : undefined) ??
+      process.env.ELEVENLABS_DEFAULT_VOICE ??
+      "21m00Tcm4TlvDq8ikWAM";
 
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",

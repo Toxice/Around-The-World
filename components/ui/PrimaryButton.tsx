@@ -28,7 +28,7 @@ export function PrimaryButton({
 
   const variants = {
     brand:
-      "bg-brand text-white hover:bg-brand-dark shadow-[0_4px_14px_rgb(108_63_196/0.5)] hover:shadow-[0_4px_20px_rgb(108_63_196/0.7)]",
+      "bg-brand text-white hover:bg-brand-dark shadow-[0_4px_14px_rgb(0_119_182/0.5)] hover:shadow-[0_4px_20px_rgb(0_119_182/0.7)]",
     teal: "bg-teal text-[#0F0A1E] hover:opacity-90",
     ghost: "bg-white/10 text-white hover:bg-white/20 border border-white/20",
   };
