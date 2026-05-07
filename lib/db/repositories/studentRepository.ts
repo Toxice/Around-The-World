@@ -45,10 +45,23 @@ export async function getAllStudentsWithSummary() {
     const totalScore = sessions.reduce((sum, sess) => sum + sess.totalScore, 0);
     const totalTurns = sessions.reduce((sum, sess) => sum + sess.turnCount, 0);
 
-    // Per-session metrics (oldest → newest for trend graphs)
+    // Aggregate from turn analytics
+    const allTurns = sessions.flatMap((sess) => sess.turns);
+    const totalWords = allTurns.reduce((sum, t) => {
+      const j = t.analyticsJson as Record<string, unknown>;
+      return sum + (typeof j.word_count === "number" ? j.word_count : 0);
+    }, 0);
+    const vocabSet = new Set<string>();
+    for (const t of allTurns) {
+      const j = t.analyticsJson as Record<string, unknown>;
+      for (const w of (j.target_vocabulary_used as string[]) ?? []) vocabSet.add(w);
+    }
+
+    // Per-session metrics oldest → newest
     const confidenceHistory = sessions.map((sess) => sess.finalConfidence ?? 0);
     const techMasteryHistory = sessions.map((sess) => avgFromTurns(sess.turns, "tech_mastery_score"));
-    const efficiencyHistory = sessions.map((sess) => avgFromTurns(sess.turns, "session_efficiency"));
+    const efficiencyHistory  = sessions.map((sess) => avgFromTurns(sess.turns, "session_efficiency"));
+    const pointsHistory      = sessions.map((sess) => sess.totalScore);
 
     return {
       id: s.id,
@@ -56,16 +69,19 @@ export async function getAllStudentsWithSummary() {
       totalSessions,
       totalScore,
       totalTurns,
-      avgConfidence: avg(confidenceHistory),
-      avgTechMastery: avg(techMasteryHistory.filter((v) => v > 0)),
-      avgEfficiency: avg(efficiencyHistory.filter((v) => v > 0)),
-      lastSessionDate: sessions.at(-1)?.completedAt?.toISOString() ?? null,
+      totalWords,
+      vocabCount: vocabSet.size,
+      avgConfidence:   avg(confidenceHistory),
+      avgTechMastery:  avg(techMasteryHistory.filter((v) => v > 0)),
+      avgEfficiency:   avg(efficiencyHistory.filter((v) => v > 0)),
+      lastSessionDate:  sessions.at(-1)?.completedAt?.toISOString() ?? null,
       lastSessionTopic: sessions.at(-1)
         ? `${sessions.at(-1)!.location} · ${sessions.at(-1)!.situation}`
         : null,
       confidenceHistory,
       techMasteryHistory,
       efficiencyHistory,
+      pointsHistory,
     };
   });
 }

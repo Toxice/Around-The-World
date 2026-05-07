@@ -8,26 +8,29 @@ import { StudentSummary } from "@/types";
 
 function pct(v: number) { return Math.round(v * 100); }
 
-function confColor(v: number) {
-  return v >= 0.7 ? "#22C55E" : v >= 0.4 ? "#F59E0B" : "#EF4444";
+function pctColor(v: number): React.CSSProperties {
+  if (v >= 80) return { color: "#0F6E56" };
+  if (v >= 60) return { color: "#BA7517" };
+  return { color: "#A32D2D" };
 }
 
-// ── Sparkline: mini bar chart showing a metric over sessions ──────────────────
+// ── Sparkline ─────────────────────────────────────────────────────────────────
 
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const pts = data.slice(-8);
-  if (pts.length === 0) return <span style={{ color: "#475569", fontSize: 10 }}>—</span>;
+function Sparkline({ scores }: { scores: number[] }) {
+  if (scores.length === 0) return <span style={{ color: "#aaa", fontSize: 12 }}>—</span>;
+  const max = Math.max(...scores, 1);
   return (
-    <div className="flex items-end gap-px" style={{ height: 20 }}>
-      {pts.map((v, i) => (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 28 }}>
+      {scores.map((s, i) => (
         <div
           key={i}
           style={{
-            width: 5,
-            height: Math.max(2, Math.round(v * 20)),
-            borderRadius: 2,
-            backgroundColor: color,
-            opacity: 0.4 + (i / pts.length) * 0.6,
+            width: 6,
+            height: Math.max(4, Math.round((s / max) * 26)),
+            borderRadius: "2px 2px 0 0",
+            background: "#1D9E75",
+            opacity: 0.4 + (i / scores.length) * 0.6,
+            flexShrink: 0,
           }}
         />
       ))}
@@ -35,25 +38,51 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-// ── Stat pill ─────────────────────────────────────────────────────────────────
+// ── Metric card (top stats) ───────────────────────────────────────────────────
 
-function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+function MetricCard({ label, value, badge, icon }: {
+  label: string; value: string; badge?: string | null; icon: string;
+}) {
   return (
-    <div className="flex flex-col items-center gap-0.5 min-w-[48px]">
-      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
-        {label}
-      </span>
-      <span className="text-sm font-bold" style={{ color }}>{value}</span>
+    <div style={{ background: "#f5f5f3", borderRadius: 8, padding: "12px 14px", flex: "1 1 0", minWidth: 0 }}>
+      <div style={{ fontSize: 12, color: "#888", marginBottom: 4, display: "flex", alignItems: "center", gap: 5 }}>
+        <span>{icon}</span> {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 500, color: "#1a1a1a", display: "flex", alignItems: "baseline", gap: 6 }}>
+        {value}
+        {badge && (
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#0F6E56", background: "#E1F5EE", padding: "2px 6px", borderRadius: 4 }}>
+            {badge}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Table columns ─────────────────────────────────────────────────────────────
+
+type SortKey = "sessions" | "points" | "conf" | "tech" | "effic";
+
+const COLUMNS: { key: string; label: string; width: string; sortable: boolean }[] = [
+  { key: "code",      label: "Student",          width: "10%", sortable: false },
+  { key: "topic",     label: "Last topic",        width: "22%", sortable: false },
+  { key: "sessions",  label: "Sessions",          width: "7%",  sortable: true  },
+  { key: "points",    label: "Points",            width: "9%",  sortable: true  },
+  { key: "conf",      label: "Conf. %",           width: "8%",  sortable: true  },
+  { key: "tech",      label: "Tech %",            width: "8%",  sortable: true  },
+  { key: "effic",     label: "Effic. %",          width: "8%",  sortable: true  },
+  { key: "sparkline", label: "Points / session",  width: "28%", sortable: false },
+];
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function TeacherDashboard() {
   const [students, setStudents] = useState<StudentSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading]   = useState(true);
+  const [sortKey, setSortKey]   = useState<SortKey | null>(null);
+  const [sortDir, setSortDir]   = useState<"asc" | "desc">("desc");
+  const [search, setSearch]     = useState("");
 
   useEffect(() => {
     fetch("/api/students")
@@ -62,140 +91,151 @@ export default function TeacherDashboard() {
       .catch(() => setLoading(false));
   }, []);
 
+  function handleSort(key: string) {
+    if (!["sessions", "points", "conf", "tech", "effic"].includes(key)) return;
+    const k = key as SortKey;
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("desc"); }
+  }
+
+  const keyMap: Record<SortKey, (s: StudentSummary) => number> = {
+    sessions: (s) => s.totalSessions,
+    points:   (s) => s.totalScore,
+    conf:     (s) => s.avgConfidence,
+    tech:     (s) => s.avgTechMastery,
+    effic:    (s) => s.avgEfficiency,
+  };
+
   const filtered = students.filter((s) =>
     s.studentCode.toLowerCase().includes(search.toLowerCase()) ||
     (s.lastSessionTopic ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalSessions = students.reduce((sum, s) => sum + s.totalSessions, 0);
-  const totalPoints   = students.reduce((sum, s) => sum + s.totalScore, 0);
-  const avgConf = students.length > 0
-    ? students.reduce((sum, s) => sum + s.avgConfidence, 0) / students.length : 0;
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortKey) return 0;
+    const fn = keyMap[sortKey];
+    return sortDir === "asc" ? fn(a) - fn(b) : fn(b) - fn(a);
+  });
+
+  // Class-level top stats
+  const totalWords  = students.reduce((sum, s) => sum + s.totalWords, 0);
+  const totalVocab  = students.reduce((sum, s) => sum + s.vocabCount, 0);
+  const totalPoints = students.reduce((sum, s) => sum + s.totalScore, 0);
+  const totalSess   = students.reduce((sum, s) => sum + s.totalSessions, 0);
 
   return (
-    <div
-      className="relative min-h-screen flex flex-col overflow-hidden"
-      style={{ background: "linear-gradient(150deg, #0B1F4F 0%, #0F2D7A 45%, #1640A8 100%)" }}
-    >
-      {/* Background decoration */}
-      <div className="absolute inset-0 pointer-events-none select-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full"
-          style={{ background: "radial-gradient(ellipse, rgba(0,160,255,0.15) 0%, transparent 65%)" }} />
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: "linear-gradient(rgba(0,180,216,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,180,216,1) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-          }} />
+    <div style={{ padding: "1.5rem", fontFamily: "system-ui, sans-serif", background: "#fff", minHeight: "100vh" }}>
+
+      {/* Back link */}
+      <div style={{ marginBottom: "1rem" }}>
+        <Link href="/teacher/portal" style={{ fontSize: 13, color: "#888", textDecoration: "none" }}>
+          ← Portal
+        </Link>
       </div>
 
-      {/* ── Header ── */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-3 shrink-0"
-        style={{ background: "rgba(10,25,60,0.7)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(0,119,182,0.25)" }}>
-        <div className="flex items-center gap-4">
-          <Link href="/teacher/portal" className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: "#90CFFF" }}>←</Link>
-          <div>
-            <p className="text-sm font-bold text-white">Dashboard</p>
-            <p className="text-xs" style={{ color: "#90CFFF" }}>Overall Student Analytics</p>
-          </div>
+      {/* Top stat cards */}
+      <div style={{ display: "flex", gap: 10, marginBottom: "1.25rem" }}>
+        <MetricCard label="Total words"   value={totalWords.toLocaleString()}  badge={null}   icon="✏️" />
+        <MetricCard label="Vocab size"    value={totalVocab.toLocaleString()}  badge={null}   icon="📖" />
+        <MetricCard label="Total points"  value={totalPoints.toLocaleString()} badge={null}   icon="⭐" />
+        <MetricCard label="Sessions"      value={totalSess.toLocaleString()}   badge={null}   icon="📊" />
+      </div>
+
+      {/* Table header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 15, fontWeight: 500, color: "#1a1a1a" }}>Students</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="text"
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              fontSize: 12, padding: "4px 10px", borderRadius: 20,
+              border: "0.5px solid #e0e0da", outline: "none", background: "#f5f5f3",
+            }}
+          />
+          <span style={{ fontSize: 12, color: "#888", background: "#f5f5f3", padding: "2px 10px", borderRadius: 20, border: "0.5px solid #e0e0da" }}>
+            {filtered.length} students
+          </span>
         </div>
-        <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" className="h-10 w-auto" aria-label="Voya">
-          <text x="2" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">vo</text>
-          <text x="90" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">y</text>
-          <circle cx="103" cy="38" r="8" fill="#00C8FF" />
-          <circle cx="123" cy="38" r="8" fill="#00C8FF" />
-          <text x="133" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">a</text>
-        </svg>
-      </header>
+      </div>
 
-      <div className="relative z-10 flex-1 overflow-auto px-4 py-4 flex flex-col gap-4">
-
-        {/* ── Class-level summary cards ── */}
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: "Students",  value: String(students.length), color: "#48CAE4" },
-            { label: "Sessions",  value: String(totalSessions),   color: "#A78BFA" },
-            { label: "Points",    value: String(totalPoints),      color: "#F59E0B" },
-            { label: "Avg Conf.", value: `${pct(avgConf)}%`,       color: confColor(avgConf) },
-          ].map((c) => (
-            <div key={c.label} className="rounded-xl p-3 flex flex-col gap-0.5"
-              style={{ background: "rgba(10,25,60,0.6)", border: "1px solid rgba(0,119,182,0.25)" }}>
-              <p className="text-xs" style={{ color: "#90CFFF" }}>{c.label}</p>
-              <p className="text-xl font-bold" style={{ color: c.color }}>{c.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Search ── */}
-        <input
-          type="text"
-          placeholder="Search student or topic…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-9 rounded-xl px-3 text-sm focus:outline-none"
-          style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(0,119,182,0.35)", color: "#FFFFFF" }}
-        />
-
-        {/* ── Student cards ── */}
-        {loading ? (
-          <div className="py-12 text-center text-sm" style={{ color: "#90CFFF" }}>Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div className="py-12 text-center text-sm" style={{ color: "#90CFFF" }}>
-            {students.length === 0 ? "No student data yet." : "No students match your search."}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filtered.map((s) => (
-              <Link
-                key={s.id}
-                href={`/teacher/students/${s.id}`}
-                style={{ textDecoration: "none" }}
-              >
-                <div
-                  className="rounded-2xl px-4 py-3 flex flex-col gap-3 hover:brightness-110 transition-all active:scale-[0.99]"
-                  style={{ background: "rgba(10,25,60,0.7)", border: "1px solid rgba(0,119,182,0.25)" }}
+      {/* Table */}
+      {loading ? (
+        <div style={{ padding: "3rem", textAlign: "center", color: "#888" }}>Loading…</div>
+      ) : (
+        <div style={{ background: "#fff", border: "0.5px solid #e0e0da", borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+            <thead>
+              <tr style={{ background: "#f5f5f3", borderBottom: "0.5px solid #e0e0da" }}>
+                {COLUMNS.map((col) => {
+                  const active = sortKey === col.key;
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      style={{
+                        width: col.width, padding: "9px 12px", textAlign: "left",
+                        fontWeight: 500, fontSize: 11, textTransform: "uppercase",
+                        letterSpacing: "0.05em", whiteSpace: "nowrap",
+                        color: active ? "#1D9E75" : "#888",
+                        cursor: col.sortable ? "pointer" : "default",
+                        userSelect: "none",
+                      }}
+                    >
+                      {col.label}
+                      {col.sortable && active && (
+                        <span style={{ marginLeft: 4, fontSize: 10 }}>{sortDir === "asc" ? "↑" : "↓"}</span>
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ padding: "2rem", textAlign: "center", color: "#aaa" }}>
+                    No students found.
+                  </td>
+                </tr>
+              ) : sorted.map((s, i) => (
+                <tr
+                  key={s.id}
+                  style={{ borderBottom: i < sorted.length - 1 ? "0.5px solid #f0f0ea" : "none", cursor: "pointer" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#fafaf8")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  onClick={() => window.location.href = `/teacher/students/${s.id}`}
                 >
-                  {/* Top row: student code + last topic */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-white">{s.studentCode}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(0,119,182,0.2)", color: "#90CFFF" }}>
-                      {s.lastSessionTopic ?? "No sessions yet"}
+                  <td style={{ padding: "8px 12px", fontWeight: 500, color: "#1a1a1a" }}>{s.studentCode}</td>
+                  <td style={{ padding: "8px 12px" }}>
+                    <span style={{
+                      display: "inline-block", background: "#E6F1FB", color: "#185FA5",
+                      fontSize: 11, padding: "2px 8px", borderRadius: 20,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%",
+                    }}>
+                      {s.lastSessionTopic ?? "—"}
                     </span>
-                  </div>
-
-                  {/* Stats row */}
-                  <div className="flex items-center justify-between">
-                    <Stat label="Sessions" value={String(s.totalSessions)} color="#48CAE4" />
-                    <Stat label="Points"   value={String(s.totalScore)}    color="#F59E0B" />
-                    <Stat label="Conf."    value={`${pct(s.avgConfidence)}%`}   color={confColor(s.avgConfidence)} />
-                    <Stat label="Tech"     value={s.avgTechMastery > 0 ? `${pct(s.avgTechMastery)}%` : "—"} color="#A78BFA" />
-                    <Stat label="Effic."   value={s.avgEfficiency  > 0 ? `${pct(s.avgEfficiency)}%`  : "—"} color="#22D3EE" />
-                  </div>
-
-                  {/* Sparklines row */}
-                  <div className="flex items-end gap-4">
-                    <div className="flex flex-col gap-1 flex-1">
-                      <span className="text-[10px]" style={{ color: "#64748B" }}>Confidence</span>
-                      <Sparkline data={s.confidenceHistory} color={confColor(s.avgConfidence)} />
-                    </div>
-                    {s.avgTechMastery > 0 && (
-                      <div className="flex flex-col gap-1 flex-1">
-                        <span className="text-[10px]" style={{ color: "#64748B" }}>Tech Mastery</span>
-                        <Sparkline data={s.techMasteryHistory} color="#A78BFA" />
-                      </div>
-                    )}
-                    {s.avgEfficiency > 0 && (
-                      <div className="flex flex-col gap-1 flex-1">
-                        <span className="text-[10px]" style={{ color: "#64748B" }}>Efficiency</span>
-                        <Sparkline data={s.efficiencyHistory} color="#22D3EE" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+                  </td>
+                  <td style={{ padding: "8px 12px", color: "#1a1a1a" }}>{s.totalSessions}</td>
+                  <td style={{ padding: "8px 12px", color: "#1a1a1a" }}>{s.totalScore.toLocaleString()}</td>
+                  <td style={{ padding: "8px 12px", fontWeight: 500, ...pctColor(pct(s.avgConfidence)) }}>{pct(s.avgConfidence)}%</td>
+                  <td style={{ padding: "8px 12px", fontWeight: 500, ...pctColor(pct(s.avgTechMastery)) }}>
+                    {s.avgTechMastery > 0 ? `${pct(s.avgTechMastery)}%` : "—"}
+                  </td>
+                  <td style={{ padding: "8px 12px", fontWeight: 500, ...pctColor(pct(s.avgEfficiency)) }}>
+                    {s.avgEfficiency > 0 ? `${pct(s.avgEfficiency)}%` : "—"}
+                  </td>
+                  <td style={{ padding: "8px 12px" }}>
+                    <Sparkline scores={s.pointsHistory} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

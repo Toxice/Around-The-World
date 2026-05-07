@@ -52,6 +52,8 @@ export interface StudentSummary {
   totalSessions: number;
   totalScore: number;
   totalTurns: number;
+  totalWords: number;
+  vocabCount: number;
   avgConfidence: number;
   avgTechMastery: number;
   avgEfficiency: number;
@@ -60,6 +62,7 @@ export interface StudentSummary {
   confidenceHistory: number[];
   techMasteryHistory: number[];
   efficiencyHistory: number[];
+  pointsHistory: number[];
 }
 
 export interface GrammarError {
