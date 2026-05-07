@@ -24,7 +24,8 @@ model Session {
   completedAt     DateTime?
   totalScore      Int           @default(0)
   finalConfidence Float?
-  turnCount       Int           @default(0)
+  turnCount            Int           @default(0)
+  finalTeacherBrief    String?
   student         Student       @relation(fields: [studentId], references: [id])
   turns           SessionTurn[]
   badges          SessionBadge[]
