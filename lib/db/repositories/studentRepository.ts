@@ -4,12 +4,26 @@ export async function findStudentByCode(studentCode: string) {
   return prisma.student.findUnique({ where: { studentCode } });
 }
 
+function avg(nums: number[]): number {
+  return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+}
+
+function avgFromTurns(turns: unknown[], key: string): number {
+  const vals = (turns as Record<string, unknown>[])
+    .map((t) => {
+      const j = t.analyticsJson as Record<string, unknown>;
+      return typeof j[key] === "number" ? (j[key] as number) : null;
+    })
+    .filter((v): v is number => v !== null);
+  return avg(vals);
+}
+
 export async function getAllStudentsWithSummary() {
   const students = await prisma.student.findMany({
     include: {
       sessions: {
         where: { completedAt: { not: null } },
-        orderBy: { completedAt: "desc" },
+        orderBy: { completedAt: "asc" },
         select: {
           id: true,
           completedAt: true,
@@ -18,6 +32,7 @@ export async function getAllStudentsWithSummary() {
           turnCount: true,
           location: true,
           situation: true,
+          turns: { select: { analyticsJson: true } },
         },
       },
     },
@@ -29,10 +44,11 @@ export async function getAllStudentsWithSummary() {
     const totalSessions = sessions.length;
     const totalScore = sessions.reduce((sum, sess) => sum + sess.totalScore, 0);
     const totalTurns = sessions.reduce((sum, sess) => sum + sess.turnCount, 0);
-    const avgConfidence =
-      totalSessions > 0
-        ? sessions.reduce((sum, sess) => sum + (sess.finalConfidence ?? 0), 0) / totalSessions
-        : 0;
+
+    // Per-session metrics (oldest → newest for trend graphs)
+    const confidenceHistory = sessions.map((sess) => sess.finalConfidence ?? 0);
+    const techMasteryHistory = sessions.map((sess) => avgFromTurns(sess.turns, "tech_mastery_score"));
+    const efficiencyHistory = sessions.map((sess) => avgFromTurns(sess.turns, "session_efficiency"));
 
     return {
       id: s.id,
@@ -40,11 +56,16 @@ export async function getAllStudentsWithSummary() {
       totalSessions,
       totalScore,
       totalTurns,
-      avgConfidence,
-      lastSessionDate: sessions[0]?.completedAt?.toISOString() ?? null,
-      lastSessionTopic: sessions[0] ? `${sessions[0].location} · ${sessions[0].situation}` : null,
-      lastSessionConfidence: sessions[0]?.finalConfidence ?? null,
-      confidenceHistory: sessions.map((sess) => sess.finalConfidence ?? 0).reverse(),
+      avgConfidence: avg(confidenceHistory),
+      avgTechMastery: avg(techMasteryHistory.filter((v) => v > 0)),
+      avgEfficiency: avg(efficiencyHistory.filter((v) => v > 0)),
+      lastSessionDate: sessions.at(-1)?.completedAt?.toISOString() ?? null,
+      lastSessionTopic: sessions.at(-1)
+        ? `${sessions.at(-1)!.location} · ${sessions.at(-1)!.situation}`
+        : null,
+      confidenceHistory,
+      techMasteryHistory,
+      efficiencyHistory,
     };
   });
 }

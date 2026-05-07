@@ -53,10 +53,13 @@ export interface StudentSummary {
   totalScore: number;
   totalTurns: number;
   avgConfidence: number;
+  avgTechMastery: number;
+  avgEfficiency: number;
   lastSessionDate: string | null;
   lastSessionTopic: string | null;
-  lastSessionConfidence: number | null;
   confidenceHistory: number[];
+  techMasteryHistory: number[];
+  efficiencyHistory: number[];
 }
 
 export interface GrammarError {
