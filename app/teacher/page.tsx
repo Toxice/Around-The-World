@@ -62,17 +62,18 @@ function MetricCard({ label, value, badge, icon }: {
 
 // ── Table columns ─────────────────────────────────────────────────────────────
 
-type SortKey = "sessions" | "points" | "conf" | "tech" | "effic";
+type SortKey = "sessions" | "points" | "words" | "conf" | "tech" | "effic";
 
 const COLUMNS: { key: string; label: string; width: string; sortable: boolean }[] = [
   { key: "code",      label: "Student",          width: "10%", sortable: false },
   { key: "topic",     label: "Last topic",        width: "22%", sortable: false },
   { key: "sessions",  label: "Sessions",          width: "7%",  sortable: true  },
-  { key: "points",    label: "Points",            width: "9%",  sortable: true  },
-  { key: "conf",      label: "Conf. %",           width: "8%",  sortable: true  },
-  { key: "tech",      label: "Tech %",            width: "8%",  sortable: true  },
-  { key: "effic",     label: "Effic. %",          width: "8%",  sortable: true  },
-  { key: "sparkline", label: "Points / session",  width: "28%", sortable: false },
+  { key: "points",    label: "Points",            width: "8%",  sortable: true  },
+  { key: "words",     label: "Words",             width: "8%",  sortable: true  },
+  { key: "conf",      label: "Conf. %",           width: "7%",  sortable: true  },
+  { key: "tech",      label: "Tech %",            width: "7%",  sortable: true  },
+  { key: "effic",     label: "Effic. %",          width: "7%",  sortable: true  },
+  { key: "sparkline", label: "Points / session",  width: "22%", sortable: false },
 ];
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -101,6 +102,7 @@ export default function TeacherDashboard() {
   const keyMap: Record<SortKey, (s: StudentSummary) => number> = {
     sessions: (s) => s.totalSessions,
     points:   (s) => s.totalScore,
+    words:    (s) => s.totalWords,
     conf:     (s) => s.avgConfidence,
     tech:     (s) => s.avgTechMastery,
     effic:    (s) => s.avgEfficiency,
@@ -196,7 +198,7 @@ export default function TeacherDashboard() {
             <tbody>
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: "2rem", textAlign: "center", color: "#aaa" }}>
+                  <td colSpan={9} style={{ padding: "2rem", textAlign: "center", color: "#aaa" }}>
                     No students found.
                   </td>
                 </tr>
@@ -220,6 +222,7 @@ export default function TeacherDashboard() {
                   </td>
                   <td style={{ padding: "8px 12px", color: "#1a1a1a" }}>{s.totalSessions}</td>
                   <td style={{ padding: "8px 12px", color: "#1a1a1a" }}>{s.totalScore.toLocaleString()}</td>
+                  <td style={{ padding: "8px 12px", color: "#1a1a1a" }}>{s.totalWords.toLocaleString()}</td>
                   <td style={{ padding: "8px 12px", fontWeight: 500, ...pctColor(pct(s.avgConfidence)) }}>{pct(s.avgConfidence)}%</td>
                   <td style={{ padding: "8px 12px", fontWeight: 500, ...pctColor(pct(s.avgTechMastery)) }}>
                     {s.avgTechMastery > 0 ? `${pct(s.avgTechMastery)}%` : "—"}
