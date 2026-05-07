@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { TTS_CONFIG } from "@/lib/config/ai";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,11 +31,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
+      body: JSON.stringify({ text, ...TTS_CONFIG }),
     });
 
     if (!res.ok) {

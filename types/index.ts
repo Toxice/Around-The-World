@@ -49,7 +49,12 @@ export interface SessionResults {
 export interface StudentSummary {
   id: string;
   studentCode: string;
+  totalSessions: number;
+  totalScore: number;
+  totalTurns: number;
+  avgConfidence: number;
   lastSessionDate: string | null;
+  lastSessionTopic: string | null;
   lastSessionConfidence: number | null;
   confidenceHistory: number[];
 }

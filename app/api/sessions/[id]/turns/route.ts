@@ -4,6 +4,7 @@ import { createTurn } from "@/lib/db/repositories/turnRepository";
 import { createBadge } from "@/lib/db/repositories/badgeRepository";
 import { getMockAiResponse } from "@/lib/mock/mockAiResponse";
 import { ClaudeResponse } from "@/types";
+import { buildSystemPrompt, AI_MODEL, AI_TEMPERATURE } from "@/lib/config/ai";
 import { z } from "zod";
 
 const schema = z.object({
@@ -40,41 +41,12 @@ export async function POST(
         return NextResponse.json({ error: "AI not configured" }, { status: 503 });
       }
 
-      const systemPrompt = `You are ${session.character}, a character in an English language learning conversation app.
-Location: ${session.location}
-Situation: ${session.situation}
-Student's mission: ${session.missionText}
-
-Stay fully in character. Respond naturally as ${session.character} would in this situation.
-Keep replies concise (1-3 sentences). Gently encourage the student if they struggle.
-
-You MUST respond with valid JSON only — no markdown, no code fences. Use this exact structure:
-{
-  "character_reply": "your in-character response",
-  "teacher_analytics": {
-    "grammar_points_observed": ["list of grammar patterns the student used"],
-    "grammar_errors_frequent": ["list of grammar mistakes, empty if none"],
-    "target_vocabulary_used": ["relevant vocabulary words the student used"],
-    "missed_opportunities": ["better phrases the student could have used, empty if none"],
-    "confidence_score": 0.0,
-    "word_count": 0,
-    "struggle_detected": false,
-    "teacher_brief": "one sentence summary for the teacher"
-  },
-  "gamification": {
-    "points_earned": 10,
-    "character_mood": "😊",
-    "achievements": []
-  },
-  "mission_complete": false
-}
-
-Rules:
-- confidence_score: 0.0–1.0 based on fluency and correctness
-- points_earned: 5–30 depending on quality; reward polite/complex language
-- character_mood: single emoji reflecting how the character feels
-- achievements: award badges like "Polite Customer" or "Vocabulary Star" only for exceptional moments
-- mission_complete: true only when the student has clearly accomplished their mission`;
+      const systemPrompt = buildSystemPrompt({
+        character: session.character,
+        location: session.location,
+        situation: session.situation,
+        missionText: session.missionText,
+      });
 
       const contents = [
         ...session.turns.flatMap((t) => [
@@ -84,7 +56,7 @@ Rules:
         { role: "user", parts: [{ text: message }] },
       ];
 
-      const model = process.env.GOOGLE_AI_MODEL ?? "gemini-2.5-flash";
+      const model = AI_MODEL;
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
         {
@@ -95,7 +67,7 @@ Rules:
             contents,
             generationConfig: {
               responseMimeType: "application/json",
-              temperature: 0.7,
+              temperature: AI_TEMPERATURE,
             },
           }),
         }

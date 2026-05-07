@@ -1,95 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-
-interface MockStudent {
-  id: string;
-  studentCode: string;
-  lastSessionDate: string;
-  lastSessionTopic: string;
-  lastSessionConfidence: number;
-  confidenceHistory: number[];
-}
-
-const MOCK_STUDENTS: MockStudent[] = [
-  {
-    id: "1",
-    studentCode: "S001",
-    lastSessionDate: "2026-05-06",
-    lastSessionTopic: "3D Printer",
-    lastSessionConfidence: 0.82,
-    confidenceHistory: [0.45, 0.52, 0.61, 0.68, 0.72, 0.78, 0.81, 0.82],
-  },
-  {
-    id: "2",
-    studentCode: "S002",
-    lastSessionDate: "2026-05-05",
-    lastSessionTopic: "Programming",
-    lastSessionConfidence: 0.65,
-    confidenceHistory: [0.30, 0.38, 0.44, 0.52, 0.58, 0.62, 0.64, 0.65],
-  },
-  {
-    id: "3",
-    studentCode: "S003",
-    lastSessionDate: "2026-05-04",
-    lastSessionTopic: "Robotics",
-    lastSessionConfidence: 0.91,
-    confidenceHistory: [0.70, 0.74, 0.78, 0.82, 0.85, 0.88, 0.90, 0.91],
-  },
-  {
-    id: "4",
-    studentCode: "S004",
-    lastSessionDate: "2026-05-03",
-    lastSessionTopic: "3D Printer",
-    lastSessionConfidence: 0.43,
-    confidenceHistory: [0.20, 0.25, 0.28, 0.32, 0.36, 0.39, 0.41, 0.43],
-  },
-  {
-    id: "5",
-    studentCode: "S005",
-    lastSessionDate: "2026-05-07",
-    lastSessionTopic: "Programming",
-    lastSessionConfidence: 0.76,
-    confidenceHistory: [0.55, 0.60, 0.64, 0.68, 0.71, 0.73, 0.75, 0.76],
-  },
-  {
-    id: "6",
-    studentCode: "S006",
-    lastSessionDate: "2026-05-02",
-    lastSessionTopic: "Robotics",
-    lastSessionConfidence: 0.58,
-    confidenceHistory: [0.40, 0.44, 0.48, 0.50, 0.53, 0.55, 0.57, 0.58],
-  },
-  {
-    id: "7",
-    studentCode: "S007",
-    lastSessionDate: "2026-05-01",
-    lastSessionTopic: "3D Printer",
-    lastSessionConfidence: 0.37,
-    confidenceHistory: [0.18, 0.22, 0.26, 0.30, 0.33, 0.35, 0.36, 0.37],
-  },
-  {
-    id: "8",
-    studentCode: "S008",
-    lastSessionDate: "2026-04-30",
-    lastSessionTopic: "Robotics",
-    lastSessionConfidence: 0.88,
-    confidenceHistory: [0.60, 0.66, 0.72, 0.76, 0.80, 0.84, 0.86, 0.88],
-  },
-];
+import { StudentSummary } from "@/types";
 
 function confColor(v: number) {
   return v >= 0.7 ? "#22C55E" : v >= 0.4 ? "#F59E0B" : "#EF4444";
-}
-
-function topicBadge(topic: string) {
-  const map: Record<string, { bg: string; text: string }> = {
-    "3D Printer": { bg: "rgba(139,92,246,0.2)", text: "#A78BFA" },
-    "Programming": { bg: "rgba(6,182,212,0.2)", text: "#22D3EE" },
-    "Robotics": { bg: "rgba(249,115,22,0.2)", text: "#FB923C" },
-  };
-  return map[topic] ?? { bg: "rgba(100,116,139,0.2)", text: "#94A3B8" };
 }
 
 function TrendBar({ history }: { history: number[] }) {
@@ -112,16 +28,27 @@ function TrendBar({ history }: { history: number[] }) {
 }
 
 export default function TeacherDashboard() {
+  const [students, setStudents] = useState<StudentSummary[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const filtered = MOCK_STUDENTS.filter((s) =>
+  useEffect(() => {
+    fetch("/api/students")
+      .then((r) => r.json())
+      .then((data) => { setStudents(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filtered = students.filter((s) =>
     s.studentCode.toLowerCase().includes(search.toLowerCase()) ||
-    s.lastSessionTopic.toLowerCase().includes(search.toLowerCase())
+    (s.lastSessionTopic ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalSessions = students.reduce((sum, s) => sum + s.totalSessions, 0);
   const avgConf =
-    MOCK_STUDENTS.reduce((sum, s) => sum + s.lastSessionConfidence, 0) /
-    MOCK_STUDENTS.length;
+    students.length > 0
+      ? students.reduce((sum, s) => sum + s.avgConfidence, 0) / students.length
+      : 0;
 
   return (
     <div
@@ -160,23 +87,15 @@ export default function TeacherDashboard() {
           </Link>
           <div>
             <p className="text-sm font-bold text-white">Dashboard</p>
-            <p className="text-xs" style={{ color: "#90CFFF" }}>Student Analytics</p>
+            <p className="text-xs" style={{ color: "#90CFFF" }}>Overall Student Analytics</p>
           </div>
         </div>
-
-        {/* Logo small */}
-        <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"
-          className="h-10 w-auto"
-          aria-label="Voya"
-        >
-          <text x="2" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif"
-            fontSize="76" fontWeight="900" fill="#FFFFFF">vo</text>
-          <text x="90" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif"
-            fontSize="76" fontWeight="900" fill="#FFFFFF">y</text>
+        <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" className="h-10 w-auto" aria-label="Voya">
+          <text x="2" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">vo</text>
+          <text x="90" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">y</text>
           <circle cx="103" cy="38" r="8" fill="#00C8FF" />
           <circle cx="123" cy="38" r="8" fill="#00C8FF" />
-          <text x="133" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif"
-            fontSize="76" fontWeight="900" fill="#FFFFFF">a</text>
+          <text x="133" y="102" fontFamily="'Arial Rounded MT Bold', system-ui, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">a</text>
         </svg>
       </header>
 
@@ -185,17 +104,14 @@ export default function TeacherDashboard() {
         {/* ── Summary stats ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Students", value: MOCK_STUDENTS.length, color: "#48CAE4", suffix: "" },
+            { label: "Students",  value: students.length,         color: "#48CAE4", suffix: "" },
             { label: "Avg Conf.", value: Math.round(avgConf * 100), color: confColor(avgConf), suffix: "%" },
-            { label: "Today", value: 3, color: "#A78BFA", suffix: "" },
+            { label: "Sessions",  value: totalSessions,           color: "#A78BFA", suffix: "" },
           ].map((stat) => (
             <div
               key={stat.label}
               className="rounded-xl p-3 flex flex-col gap-0.5"
-              style={{
-                background: "rgba(10,25,60,0.6)",
-                border: "1px solid rgba(0,119,182,0.25)",
-              }}
+              style={{ background: "rgba(10,25,60,0.6)", border: "1px solid rgba(0,119,182,0.25)" }}
             >
               <p className="text-xs" style={{ color: "#90CFFF" }}>{stat.label}</p>
               <p className="text-xl font-bold" style={{ color: stat.color }}>
@@ -220,71 +136,75 @@ export default function TeacherDashboard() {
         />
 
         {/* ── Table ───────────────────────────────────────────────────────── */}
-        <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid rgba(0,119,182,0.25)" }}>
-          <div style={{ minWidth: 440 }}>
-            {/* Table header */}
-            <div
-              className="grid px-3 py-2 text-xs font-semibold uppercase tracking-wider"
-              style={{
-                gridTemplateColumns: "72px 1fr 1fr 56px 72px",
-                background: "rgba(6,20,50,0.8)",
-                color: "#4895EF",
-                borderBottom: "1px solid rgba(0,119,182,0.2)",
-              }}
-            >
-              <span>ID</span>
-              <span>Date</span>
-              <span>Topic</span>
-              <span>Conf.</span>
-              <span>Trend</span>
-            </div>
+        {loading ? (
+          <div className="py-12 text-center text-sm" style={{ color: "#90CFFF" }}>Loading…</div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid rgba(0,119,182,0.25)" }}>
+            <div style={{ minWidth: 520 }}>
+              {/* Header */}
+              <div
+                className="grid px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                style={{
+                  gridTemplateColumns: "80px 60px 56px 60px 1fr 72px",
+                  background: "rgba(6,20,50,0.8)",
+                  color: "#4895EF",
+                  borderBottom: "1px solid rgba(0,119,182,0.2)",
+                }}
+              >
+                <span>Student</span>
+                <span>Sessions</span>
+                <span>Turns</span>
+                <span>Score</span>
+                <span>Last Topic</span>
+                <span>Avg Conf.</span>
+              </div>
 
-            {/* Rows */}
-            {filtered.map((s, idx) => {
-              const badge = topicBadge(s.lastSessionTopic);
-              return (
-                <div
+              {/* Rows */}
+              {filtered.length === 0 ? (
+                <div className="py-8 text-center text-sm" style={{ color: "#4895EF" }}>
+                  {students.length === 0 ? "No student data yet." : "No students match your search."}
+                </div>
+              ) : filtered.map((s, idx) => (
+                <Link
                   key={s.id}
-                  className="grid px-3 py-2 items-center"
+                  href={`/teacher/students/${s.id}`}
+                  className="grid px-3 py-2.5 items-center hover:bg-white/5 transition-colors"
                   style={{
-                    gridTemplateColumns: "72px 1fr 1fr 56px 72px",
+                    gridTemplateColumns: "80px 60px 56px 60px 1fr 72px",
                     background: idx % 2 === 0 ? "rgba(10,25,60,0.5)" : "rgba(6,16,42,0.5)",
                     borderBottom: idx < filtered.length - 1 ? "1px solid rgba(0,119,182,0.1)" : "none",
+                    textDecoration: "none",
                   }}
                 >
                   <span className="font-bold text-xs text-white">{s.studentCode}</span>
 
+                  <span className="text-xs font-semibold" style={{ color: "#48CAE4" }}>
+                    {s.totalSessions}
+                  </span>
+
                   <span className="text-xs" style={{ color: "#90CFFF" }}>
-                    {new Date(s.lastSessionDate).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short",
-                    })}
+                    {s.totalTurns}
                   </span>
 
-                  <span>
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: badge.bg, color: badge.text }}
-                    >
-                      {s.lastSessionTopic}
+                  <span className="text-xs font-semibold" style={{ color: "#F59E0B" }}>
+                    {s.totalScore}
+                  </span>
+
+                  <span className="text-xs truncate pr-2" style={{ color: "#90CFFF" }}>
+                    {s.lastSessionTopic ?? "—"}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold" style={{ color: confColor(s.avgConfidence) }}>
+                      {Math.round(s.avgConfidence * 100)}%
                     </span>
-                  </span>
-
-                  <span className="text-xs font-bold" style={{ color: confColor(s.lastSessionConfidence) }}>
-                    {Math.round(s.lastSessionConfidence * 100)}%
-                  </span>
-
-                  <TrendBar history={s.confidenceHistory} />
-                </div>
-              );
-            })}
-
-            {filtered.length === 0 && (
-              <div className="py-8 text-center text-sm" style={{ color: "#4895EF" }}>
-                No students match your search.
-              </div>
-            )}
+                    <TrendBar history={s.confidenceHistory} />
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { STT_MODEL } from "@/lib/config/ai";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const upstream = new FormData();
     upstream.append("file", audio, audio.name);
-    upstream.append("model_id", "scribe_v1");
+    upstream.append("model_id", STT_MODEL);
 
     const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",

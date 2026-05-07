@@ -10,22 +10,43 @@ export async function getAllStudentsWithSummary() {
       sessions: {
         where: { completedAt: { not: null } },
         orderBy: { completedAt: "desc" },
-        take: 5,
-        select: { id: true, completedAt: true, finalConfidence: true, totalScore: true },
+        select: {
+          id: true,
+          completedAt: true,
+          finalConfidence: true,
+          totalScore: true,
+          turnCount: true,
+          location: true,
+          situation: true,
+        },
       },
     },
     orderBy: { studentCode: "asc" },
   });
 
-  return students.map((s) => ({
-    id: s.id,
-    studentCode: s.studentCode,
-    lastSessionDate: s.sessions[0]?.completedAt?.toISOString() ?? null,
-    lastSessionConfidence: s.sessions[0]?.finalConfidence ?? null,
-    confidenceHistory: s.sessions
-      .map((sess) => sess.finalConfidence ?? 0)
-      .reverse(),
-  }));
+  return students.map((s) => {
+    const sessions = s.sessions;
+    const totalSessions = sessions.length;
+    const totalScore = sessions.reduce((sum, sess) => sum + sess.totalScore, 0);
+    const totalTurns = sessions.reduce((sum, sess) => sum + sess.turnCount, 0);
+    const avgConfidence =
+      totalSessions > 0
+        ? sessions.reduce((sum, sess) => sum + (sess.finalConfidence ?? 0), 0) / totalSessions
+        : 0;
+
+    return {
+      id: s.id,
+      studentCode: s.studentCode,
+      totalSessions,
+      totalScore,
+      totalTurns,
+      avgConfidence,
+      lastSessionDate: sessions[0]?.completedAt?.toISOString() ?? null,
+      lastSessionTopic: sessions[0] ? `${sessions[0].location} · ${sessions[0].situation}` : null,
+      lastSessionConfidence: sessions[0]?.finalConfidence ?? null,
+      confidenceHistory: sessions.map((sess) => sess.finalConfidence ?? 0).reverse(),
+    };
+  });
 }
 
 export async function getStudentDetail(studentId: string) {
