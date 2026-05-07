@@ -11,6 +11,9 @@ interface Message {
   role: "character" | "student";
   text: string;
   isVoice?: boolean;
+  id: number;
+  audioUrl?: string;
+  audioLoading?: boolean;
 }
 
 const TYPING_DOTS = ["●", "●", "●"];
@@ -26,9 +29,13 @@ export default function ConversationPage() {
   const [floatScore, setFloatScore] = useState<number | null>(null);
   const [voiceError, setVoiceError] = useState("");
   const [muted, setMuted] = useState(false);
-  const { play: playTTS, playing: ttsPlaying } = useAudioPlayer();
+  const mutedRef = useRef(false);
+  const { fetchAudio, playUrl, playingId } = useAudioPlayer();
+  const msgIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => { mutedRef.current = muted; }, [muted]);
 
   // ── Voice recorder ─────────────────────────────────────────────────────────
   const handleTranscript = useCallback((text: string) => {
@@ -47,10 +54,12 @@ export default function ConversationPage() {
   // ── Init ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!session.sessionId) { router.replace("/"); return; }
-    setMessages([{
-      role: "character",
-      text: `Hi! I'm ${session.character}. ${session.missionText} — let's get started!`,
-    }]);
+    const id = ++msgIdRef.current;
+    setMessages([{ role: "character", text: `Hi! I'm ${session.character}. ${session.missionText} — let's get started!`, id, audioLoading: true }]);
+    fetchAudio(`Hi! I'm ${session.character}. ${session.missionText} — let's get started!`).then((url) => {
+      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, audioUrl: url ?? undefined, audioLoading: false } : m));
+      if (!mutedRef.current && url) playUrl(url, id);
+    });
   }, [session.sessionId, session.character, session.missionText, router]);
 
   useEffect(() => {
@@ -62,7 +71,7 @@ export default function ConversationPage() {
     if (!text.trim() || sending) return;
 
     setSending(true);
-    setMessages((prev) => [...prev, { role: "student", text, isVoice }]);
+    setMessages((prev) => [...prev, { role: "student", text, isVoice, id: ++msgIdRef.current }]);
 
     try {
       const res = await fetch(`/api/sessions/${session.sessionId}/turns`, {
@@ -72,18 +81,20 @@ export default function ConversationPage() {
       });
 
       if (!res.ok) {
-        setMessages((prev) => [...prev, { role: "character", text: "Sorry, I didn't catch that. Could you try again?" }]);
+        setMessages((prev) => [...prev, { role: "character", text: "Sorry, I didn't catch that. Could you try again?", id: ++msgIdRef.current }]);
         return;
       }
 
       const data = await res.json();
+      const replyId = ++msgIdRef.current;
 
-      setMessages((prev) => [...prev, { role: "character", text: data.characterReply }]);
+      setMessages((prev) => [...prev, { role: "character", text: data.characterReply, id: replyId, audioLoading: true }]);
 
-      // Speak the character's reply via ElevenLabs
-      if (!muted) {
-        playTTS(data.characterReply, session.voiceEnvKey);
-      }
+      // Fetch TTS immediately and auto-play when ready
+      fetchAudio(data.characterReply).then((url) => {
+        setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, audioUrl: url ?? undefined, audioLoading: false } : m));
+        if (!mutedRef.current && url) playUrl(url, replyId);
+      });
 
       if (data.pointsEarned > 0) {
         addPoints(data.pointsEarned);
@@ -94,7 +105,7 @@ export default function ConversationPage() {
       for (const badge of data.achievements ?? []) addBadge(badge);
       if (data.missionComplete) setMissionComplete(true);
     } catch {
-      setMessages((prev) => [...prev, { role: "character", text: "Something went wrong. Let's continue." }]);
+      setMessages((prev) => [...prev, { role: "character", text: "Something went wrong. Let's continue.", id: Date.now() }]);
     } finally {
       setSending(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -190,6 +201,23 @@ export default function ConversationPage() {
                 <span className="inline-block mr-1.5 opacity-70 text-xs">🎤</span>
               )}
               {msg.text}
+              {msg.role === "character" && (
+                <button
+                  onClick={() => msg.audioUrl && playUrl(msg.audioUrl, msg.id)}
+                  disabled={msg.audioLoading || !msg.audioUrl}
+                  className={cn(
+                    "ml-2 align-middle transition-all text-base",
+                    playingId === msg.id
+                      ? "opacity-100 animate-pulse"
+                      : msg.audioLoading
+                      ? "opacity-30 cursor-wait"
+                      : "opacity-40 hover:opacity-100 hover:scale-110"
+                  )}
+                  aria-label="Listen"
+                >
+                  {playingId === msg.id ? "🔊" : msg.audioLoading ? "⏳" : "🔈"}
+                </button>
+              )}
             </div>
           </div>
         ))}
