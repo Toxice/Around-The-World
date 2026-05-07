@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
-/* ─── EduLingo Design Tokens ─────────────────────────────────────────── */
+/* ─── Voya Design Tokens ──────────────────────────────────────────────── */
 @theme inline {
-  /* Brand */
-  --color-brand:        #6C3FC4;
-  --color-brand-light:  #8B5CF6;
-  --color-brand-dark:   #4C2A8A;
+  /* Brand — ocean blue palette */
+  --color-brand:        #0077B6;
+  --color-brand-light:  #48CAE4;
+  --color-brand-dark:   #023E8A;
 
-  /* Backgrounds (student dark theme) */
-  --color-bg-dark:      #0F0A1E;
-  --color-bg-card:      #1E1445;
-  --color-bg-input:     #2D1F5E;
+  /* Backgrounds (student dark theme) — deep blue/black */
+  --color-bg-dark:      #000814;
+  --color-bg-card:      #001D3D;
+  --color-bg-input:     #003566;
 
   /* Accent */
   --color-teal:         #06B6D4;
@@ -43,7 +43,7 @@
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Shadows */
-  --shadow-card:  0 4px 20px rgb(108 63 196 / 0.25);
+  --shadow-card:  0 4px 20px rgb(0 119 182 / 0.25);
   --shadow-badge: 0 8px 24px rgb(251 191 36 / 0.35);
   --shadow-hud:   0 2px 12px rgb(0 0 0 / 0.4);
 }
@@ -123,4 +123,10 @@ body {
 /* ─── Scrollbar (webkit) ─────────────────────────────────────────────── */
 .chat-scroll::-webkit-scrollbar { width: 4px; }
 .chat-scroll::-webkit-scrollbar-track { background: transparent; }
-.chat-scroll::-webkit-scrollbar-thumb { background: rgb(139 92 246 / 0.3); border-radius: 2px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgb(0 119 182 / 0.3); border-radius: 2px; }
+
+/* ─── Voya landing — role card hover glow ────────────────────────────── */
+.role-card:hover {
+  border-color: rgba(0, 180, 216, 0.6);
+  box-shadow: 0 0 24px rgba(0, 119, 182, 0.25);
+}
