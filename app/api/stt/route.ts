@@ -14,25 +14,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ transcript: "I would like to order the sushi please." });
     }
 
-    const whisperUrl = process.env.WHISPER_API_URL;
-    const whisperKey = process.env.WHISPER_API_KEY;
+    const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
 
-    if (!whisperUrl) {
-      return NextResponse.json({ error: "Whisper STT not configured" }, { status: 503 });
+    if (!elevenLabsKey) {
+      return NextResponse.json({ error: "STT not configured" }, { status: 503 });
     }
 
     const upstream = new FormData();
     upstream.append("file", audio, audio.name);
-    upstream.append("model", "whisper-1");
+    upstream.append("model_id", "scribe_v1");
 
-    const res = await fetch(whisperUrl, {
+    const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
-      headers: whisperKey ? { Authorization: `Bearer ${whisperKey}` } : {},
+      headers: { "xi-api-key": elevenLabsKey },
       body: upstream,
     });
 
     if (!res.ok) {
-      console.error("Whisper error:", res.status);
+      console.error("ElevenLabs STT error:", res.status, await res.text());
       return NextResponse.json({ error: "STT service error" }, { status: 502 });
     }
 
