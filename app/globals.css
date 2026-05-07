@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ─── EduLingo Design Tokens ─────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Brand */
+  --color-brand:        #6C3FC4;
+  --color-brand-light:  #8B5CF6;
+  --color-brand-dark:   #4C2A8A;
+
+  /* Backgrounds (student dark theme) */
+  --color-bg-dark:      #0F0A1E;
+  --color-bg-card:      #1E1445;
+  --color-bg-input:     #2D1F5E;
+
+  /* Accent */
+  --color-teal:         #06B6D4;
+  --color-amber:        #F59E0B;
+  --color-rose:         #F43F5E;
+
+  /* Semantic */
+  --color-confidence-high:  #22C55E;
+  --color-confidence-mid:   #F59E0B;
+  --color-confidence-low:   #EF4444;
+
+  /* Text */
+  --color-text-primary:     #F1F5F9;
+  --color-text-secondary:   #94A3B8;
+
+  /* Teacher UI */
+  --color-teacher-bg:       #F8FAFC;
+  --color-teacher-surface:  #FFFFFF;
+  --color-teacher-border:   #E2E8F0;
+  --color-teacher-text:     #0F172A;
+  --color-teacher-muted:    #64748B;
+
+  /* Border radius */
+  --radius-btn:    12px;
+  --radius-card:   16px;
+  --radius-input:  12px;
+  --radius-bubble: 18px;
+
+  /* Typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Shadows */
+  --shadow-card:  0 4px 20px rgb(108 63 196 / 0.25);
+  --shadow-badge: 0 8px 24px rgb(251 191 36 / 0.35);
+  --shadow-hud:   0 2px 12px rgb(0 0 0 / 0.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  /* iOS safe area support */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  font-family: var(--font-sans);
+  /* Default: teacher light theme (overridden per route group) */
+  background-color: var(--color-teacher-bg);
+  color: var(--color-teacher-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Student dark theme (applied via .theme-student on the html/body) ── */
+.theme-student {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-primary);
+}
+
+/* ─── Animations ──────────────────────────────────────────────────────── */
+@keyframes badge-enter {
+  from { transform: translateY(120px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes badge-exit {
+  from { transform: translateY(0);     opacity: 1; }
+  to   { transform: translateY(120px); opacity: 0; }
+}
+
+@keyframes score-float {
+  0%   { transform: translateY(0);     opacity: 1; }
+  100% { transform: translateY(-28px); opacity: 0; }
+}
+
+@keyframes mood-pulse {
+  0%   { transform: scale(1);   }
+  50%  { transform: scale(1.4); }
+  100% { transform: scale(1);   }
+}
+
+@keyframes dots-bounce {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%           { opacity: 1;   transform: scale(1);   }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0;   }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Scrollbar (webkit) ─────────────────────────────────────────────── */
+.chat-scroll::-webkit-scrollbar { width: 4px; }
+.chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgb(139 92 246 / 0.3); border-radius: 2px; }

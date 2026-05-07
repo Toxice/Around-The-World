@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "CLAUDE_PROXY_URL": "@claude-proxy-url",
+    "CLAUDE_PROXY_SECRET": "@claude-proxy-secret",
+    "OPENAI_API_KEY": "@openai-api-key",
+    "ELEVENLABS_API_KEY": "@elevenlabs-api-key",
+    "ELEVENLABS_VOICE_UK_WAITER": "@elevenlabs-voice-uk-waiter",
+    "ELEVENLABS_VOICE_US_TEACHER": "@elevenlabs-voice-us-teacher",
+    "ELEVENLABS_VOICE_US_PROFESSOR": "@elevenlabs-voice-us-professor",
+    "ELEVENLABS_VOICE_ZA_HOST": "@elevenlabs-voice-za-host",
+    "MOCK_AI": "@mock-ai"
+  }
+}
