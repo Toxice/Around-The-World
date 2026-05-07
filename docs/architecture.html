@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduLingo — Architecture Overview</title>
+<style>
+  :root {
+    --brand: #6C3FC4;
+    --brand-light: #8B5CF6;
+    --teal: #06B6D4;
+    --amber: #F59E0B;
+    --rose: #F43F5E;
+    --green: #22C55E;
+    --bg: #0F0A1E;
+    --bg-card: #1E1445;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: #f8fafc; color: var(--text); line-height: 1.6; }
+
+  /* ── Layout ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, var(--bg) 0%, #1a0a3e 100%);
+    color: white; border-radius: 20px; padding: 48px;
+    margin-bottom: 48px; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; top: -80px; right: -80px;
+    width: 300px; height: 300px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(108,63,196,0.4) 0%, transparent 70%);
+  }
+  .hero-badge { display: inline-block; background: rgba(108,63,196,0.4); border: 1px solid rgba(108,63,196,0.6); color: #c4b5fd; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; }
+  .hero h1 { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+  .hero h1 span { color: #a78bfa; }
+  .hero p { color: #94a3b8; font-size: 16px; max-width: 600px; }
+  .hero-stack { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+  .hero-tag { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 56px; }
+  .section-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-title .icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .icon-purple { background: rgba(108,63,196,0.12); }
+  .icon-teal   { background: rgba(6,182,212,0.12); }
+  .icon-amber  { background: rgba(245,158,11,0.12); }
+  .icon-green  { background: rgba(34,197,94,0.12); }
+  .icon-rose   { background: rgba(244,63,94,0.12); }
+  .icon-blue   { background: rgba(59,130,246,0.12); }
+
+  /* ── Cards ── */
+  .card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .card-sm { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── Tech Stack ── */
+  .tech-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .tech-card .tech-name { font-size: 15px; font-weight: 700; }
+  .tech-card .tech-version { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block; width: fit-content; }
+  .tech-card .tech-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .tech-card .tech-role { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--brand); }
+  .v-purple { background: rgba(108,63,196,0.1); color: var(--brand); }
+  .v-teal   { background: rgba(6,182,212,0.1);  color: #0891b2; }
+  .v-amber  { background: rgba(245,158,11,0.1);  color: #b45309; }
+  .v-green  { background: rgba(34,197,94,0.1);   color: #15803d; }
+  .v-blue   { background: rgba(59,130,246,0.1);  color: #1d4ed8; }
+  .v-rose   { background: rgba(244,63,94,0.1);   color: #be123c; }
+  .v-gray   { background: rgba(100,116,139,0.1); color: #475569; }
+
+  /* ── Architecture diagram ── */
+  .arch-diagram { background: var(--bg); border-radius: 16px; padding: 36px; color: white; }
+  .arch-row { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 8px; }
+  .arch-box {
+    border-radius: 10px; padding: 12px 18px; font-size: 13px; font-weight: 600;
+    text-align: center; min-width: 140px;
+  }
+  .arch-box .sub { font-size: 11px; font-weight: 400; opacity: 0.75; display: block; margin-top: 2px; }
+  .box-browser  { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; }
+  .box-next     { background: rgba(108,63,196,0.3); border: 1px solid rgba(108,63,196,0.6); color: #c4b5fd; }
+  .box-db       { background: rgba(6,182,212,0.2);  border: 1px solid rgba(6,182,212,0.5);  color: #67e8f9; }
+  .box-ext      { background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.5); color: #fcd34d; }
+  .box-teacher  { background: rgba(34,197,94,0.2);  border: 1px solid rgba(34,197,94,0.5);  color: #86efac; }
+  .arch-arrow { color: #475569; font-size: 20px; margin: 0 6px; flex-shrink: 0; }
+  .arch-arrow-down { text-align: center; color: #475569; font-size: 20px; margin: 4px 0; }
+  .arch-label { font-size: 10px; color: #64748b; text-align: center; margin-top: -4px; margin-bottom: 8px; }
+  .arch-group { display: flex; flex-direction: column; align-items: center; }
+  .arch-section-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #475569; text-align: center; margin-bottom: 10px; }
+  .arch-divider { width: 100%; height: 1px; background: #1e293b; margin: 20px 0; }
+  .arch-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .arch-col-title { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b; margin-bottom: 10px; text-align: center; }
+  .arch-mini-box { border-radius: 8px; padding: 10px 14px; font-size: 12px; font-weight: 500; text-align: center; margin-bottom: 6px; }
+
+  /* ── Flow ── */
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; }
+  .flow-step {
+    background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 16px; min-width: 160px; flex: 1; position: relative;
+  }
+  .flow-step .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .flow-step .step-url { font-size: 11px; font-weight: 600; color: var(--brand); background: rgba(108,63,196,0.08); padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; display: inline-block; font-family: monospace; }
+  .flow-step h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .flow-step p  { font-size: 12px; color: var(--muted); }
+  .flow-step .api-call { font-size: 11px; color: var(--teal); font-family: monospace; margin-top: 8px; background: rgba(6,182,212,0.07); padding: 3px 7px; border-radius: 4px; display: inline-block; }
+  .flow-arrow { display: flex; align-items: center; padding: 0 4px; color: var(--brand); font-size: 20px; flex-shrink: 0; }
+
+  /* ── API Table ── */
+  .api-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .api-table th { background: #f1f5f9; text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .api-table td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .api-table tr:last-child td { border-bottom: none; }
+  .api-table tr:hover td { background: #f8fafc; }
+  .method { font-family: monospace; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+  .method-get  { background: rgba(34,197,94,0.1);  color: #15803d; }
+  .method-post { background: rgba(59,130,246,0.1); color: #1d4ed8; }
+  .endpoint { font-family: monospace; font-size: 12px; color: var(--text); font-weight: 600; }
+  .endpoint-desc { color: var(--muted); font-size: 12px; }
+  .endpoint-body { font-family: monospace; font-size: 11px; color: #475569; background: #f8fafc; padding: 3px 7px; border-radius: 4px; display: inline-block; margin-top: 3px; }
+  .source-file { font-family: monospace; font-size: 11px; color: var(--brand); }
+
+  /* ── DB Schema ── */
+  .db-table { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .db-table-header { background: var(--bg); color: white; padding: 12px 16px; display: flex; align-items: center; gap: 8px; }
+  .db-table-header .table-name { font-size: 14px; font-weight: 700; font-family: monospace; }
+  .db-table-header .table-icon { font-size: 18px; }
+  .db-field { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; gap: 8px; }
+  .db-field:last-child { border-bottom: none; }
+  .db-field-name { font-family: monospace; font-weight: 600; flex: 1; }
+  .db-field-type { font-family: monospace; font-size: 11px; color: var(--teal); background: rgba(6,182,212,0.08); padding: 2px 6px; border-radius: 4px; }
+  .db-field-note { font-size: 11px; color: var(--muted); }
+  .db-pk   { color: var(--amber); font-size: 10px; font-weight: 800; }
+  .db-fk   { color: var(--rose);  font-size: 10px; font-weight: 800; }
+  .db-idx  { color: var(--green); font-size: 10px; font-weight: 800; }
+  .db-rel-arrow { text-align: center; font-size: 24px; color: #94a3b8; padding: 8px; display: flex; align-items: center; justify-content: center; }
+
+  /* ── Context State ── */
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .state-field { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; }
+  .state-field .sf-name { font-family: monospace; font-size: 12px; font-weight: 600; color: var(--brand); min-width: 130px; }
+  .state-field .sf-desc { font-size: 12px; color: var(--muted); }
+  .state-field .sf-type { font-family: monospace; font-size: 11px; color: var(--teal); }
+  .state-actions { margin-top: 20px; }
+  .action-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+  .action-row:last-child { border-bottom: none; }
+  .action-name { font-family: monospace; font-size: 12px; font-weight: 600; color: #1d4ed8; min-width: 200px; flex-shrink: 0; }
+  .action-when { font-size: 12px; color: var(--muted); }
+
+  /* ── File tree ── */
+  .file-tree { background: var(--bg); border-radius: 14px; padding: 28px 32px; color: #e2e8f0; font-family: monospace; font-size: 13px; line-height: 2; }
+  .ft-dir   { color: #7dd3fc; }
+  .ft-file  { color: #e2e8f0; }
+  .ft-note  { color: #64748b; font-size: 12px; }
+  .ft-brand { color: #a78bfa; font-weight: 600; }
+  .ft-teal  { color: #67e8f9; }
+  .ft-green { color: #86efac; }
+
+  /* ── Env vars ── */
+  .env-row { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; align-items: start; }
+  .env-row:last-child { border-bottom: none; }
+  .env-name { font-family: monospace; font-size: 12px; font-weight: 600; color: var(--brand); }
+  .env-used { font-size: 12px; color: var(--muted); }
+  .env-desc { font-size: 12px; color: var(--text); }
+  .env-header { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 12px; padding: 8px 14px; background: #f1f5f9; border-radius: 6px; margin-bottom: 4px; }
+  .env-header span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+
+  /* ── Misc ── */
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .pill-brand  { background: rgba(108,63,196,0.1); color: var(--brand); }
+  .pill-teal   { background: rgba(6,182,212,0.1);  color: #0891b2; }
+  .pill-green  { background: rgba(34,197,94,0.1);  color: #15803d; }
+  .pill-amber  { background: rgba(245,158,11,0.1); color: #b45309; }
+  code { font-family: monospace; font-size: 12px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: var(--brand); }
+  .note { background: rgba(245,158,11,0.07); border-left: 3px solid var(--amber); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f; margin-top: 14px; }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); align-self: center; }
+    .arch-cols { grid-template-columns: 1fr; }
+    .hero { padding: 28px; }
+    .hero h1 { font-size: 28px; }
+    .env-row, .env-header { grid-template-columns: 1fr; }
+    .state-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══════════ HERO ══════════ -->
+  <div class="hero">
+    <div class="hero-badge">Architecture Reference</div>
+    <h1>EduLingo <span>— Codebase Map</span></h1>
+    <p>A complete visual reference of every layer, file, API endpoint, and data model. Designed for the full team to understand the big picture at a glance.</p>
+    <div class="hero-stack">
+      <span class="hero-tag">Next.js 16</span>
+      <span class="hero-tag">React 19</span>
+      <span class="hero-tag">Tailwind CSS v4</span>
+      <span class="hero-tag">Prisma v7</span>
+      <span class="hero-tag">SQLite</span>
+      <span class="hero-tag">TypeScript</span>
+      <span class="hero-tag">Claude API</span>
+      <span class="hero-tag">Whisper STT</span>
+      <span class="hero-tag">ElevenLabs TTS</span>
+    </div>
+  </div>
+
+  <!-- ══════════ TECH STACK ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-purple">🧱</div>
+      Tech Stack
+    </div>
+    <div class="grid-4">
+      <div class="tech-card">
+        <div class="tech-role">Framework</div>
+        <div class="tech-name">Next.js 16</div>
+        <div class="tech-version v-purple">App Router</div>
+        <div class="tech-desc">Handles routing, server rendering, and API routes — all in one repo. No separate Express server needed.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">UI Library</div>
+        <div class="tech-name">React 19</div>
+        <div class="tech-version v-teal">Client Components</div>
+        <div class="tech-desc">All interactive screens are Client Components (<code>"use client"</code>). Server Components are used for layouts.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">Styling</div>
+        <div class="tech-name">Tailwind CSS v4</div>
+        <div class="tech-version v-amber">CSS-first config</div>
+        <div class="tech-desc">No <code>tailwind.config.ts</code>. All tokens (colors, radius, shadows) defined in <code>globals.css</code> via <code>@theme inline</code>.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">Database ORM</div>
+        <div class="tech-name">Prisma v7</div>
+        <div class="tech-version v-green">SQLite adapter</div>
+        <div class="tech-desc">Maps TypeScript to SQL. Schema lives in <code>prisma/schema.prisma</code>. Uses better-sqlite3 adapter at runtime.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">Database</div>
+        <div class="tech-name">SQLite</div>
+        <div class="tech-version v-gray">dev.db file</div>
+        <div class="tech-desc">Single file database — no server to run. Perfect for hackathons. File is at <code>dev.db</code> in the project root.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">AI — Conversation</div>
+        <div class="tech-name">Claude API</div>
+        <div class="tech-version v-purple">via partner proxy</div>
+        <div class="tech-desc">Partner team manages prompts & configuration. We POST the student message → receive JSON with character reply + analytics.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">AI — Voice Input</div>
+        <div class="tech-name">Whisper STT</div>
+        <div class="tech-version v-rose">Speech-to-Text</div>
+        <div class="tech-desc">Student records audio → we POST the audio blob to <code>/api/stt</code> → Whisper transcribes → text sent to Claude.</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-role">AI — Voice Output</div>
+        <div class="tech-name">ElevenLabs TTS</div>
+        <div class="tech-version v-teal">Text-to-Speech</div>
+        <div class="tech-desc">Character replies are POSTed to <code>/api/tts</code> → ElevenLabs returns MP3 audio → played in browser.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ARCHITECTURE DIAGRAM ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-teal">🏗️</div>
+      System Architecture
+    </div>
+    <div class="arch-diagram">
+      <div class="arch-section-label">Clients</div>
+      <div class="arch-row" style="gap:24px;">
+        <div class="arch-group">
+          <div class="arch-box box-browser">📱 Student Browser<span class="sub">Mobile-first PWA</span></div>
+        </div>
+        <div class="arch-group">
+          <div class="arch-box box-teacher">🖥️ Teacher Browser<span class="sub">Desktop dashboard</span></div>
+        </div>
+      </div>
+
+      <div class="arch-arrow-down">↓</div>
+      <div class="arch-section-label">Next.js 16 Server (one process — both frontend &amp; backend)</div>
+
+      <div style="background:#111827; border-radius:14px; padding:20px; margin-bottom:16px;">
+        <div class="arch-section-label" style="color:#475569; margin-bottom:14px;">Pages (React Components — run in browser)</div>
+        <div class="arch-row" style="gap:8px; flex-wrap:wrap; justify-content:center;">
+          <div class="arch-box box-next" style="min-width:110px; font-size:12px;">/ Login<span class="sub">page.tsx</span></div>
+          <div class="arch-box box-next" style="min-width:110px; font-size:12px;">/location<span class="sub">page.tsx</span></div>
+          <div class="arch-box box-next" style="min-width:110px; font-size:12px;">/situation<span class="sub">page.tsx</span></div>
+          <div class="arch-box box-next" style="min-width:110px; font-size:12px;">/mission<span class="sub">page.tsx</span></div>
+          <div class="arch-box box-next" style="min-width:110px; font-size:12px;">/conversation<span class="sub">page.tsx</span></div>
+          <div class="arch-box box-next" style="min-width:110px; font-size:12px;">/results<span class="sub">page.tsx</span></div>
+          <div class="arch-box box-teacher" style="min-width:110px; font-size:12px;">/teacher<span class="sub">page.tsx</span></div>
+        </div>
+        <div style="text-align:center; color:#475569; font-size:18px; margin:12px 0;">↕ fetch()</div>
+        <div class="arch-section-label" style="color:#475569; margin-bottom:14px;">API Routes (run on server — students never see this code)</div>
+        <div class="arch-row" style="gap:8px; flex-wrap:wrap; justify-content:center;">
+          <div class="arch-box box-db" style="min-width:130px; font-size:11px;">POST /api/sessions<span class="sub">route.ts</span></div>
+          <div class="arch-box box-db" style="min-width:130px; font-size:11px;">POST …/turns<span class="sub">route.ts</span></div>
+          <div class="arch-box box-db" style="min-width:130px; font-size:11px;">GET …/results<span class="sub">route.ts</span></div>
+          <div class="arch-box box-db" style="min-width:130px; font-size:11px;">GET /api/students<span class="sub">route.ts</span></div>
+          <div class="arch-box box-db" style="min-width:130px; font-size:11px;">POST /api/stt<span class="sub">route.ts</span></div>
+          <div class="arch-box box-db" style="min-width:130px; font-size:11px;">POST /api/tts<span class="sub">route.ts</span></div>
+        </div>
+      </div>
+
+      <div class="arch-arrow-down">↓</div>
+      <div class="arch-section-label">Data + External Services</div>
+      <div class="arch-row" style="gap:16px; flex-wrap:wrap; justify-content:center;">
+        <div class="arch-box box-db">🗄️ SQLite (dev.db)<span class="sub">via Prisma v7</span></div>
+        <div class="arch-box box-ext">🤖 Claude API Proxy<span class="sub">partner team endpoint</span></div>
+        <div class="arch-box box-ext">🎙️ Whisper STT<span class="sub">OpenAI endpoint</span></div>
+        <div class="arch-box box-ext">🔊 ElevenLabs TTS<span class="sub">api.elevenlabs.io</span></div>
+      </div>
+
+      <div class="note" style="background:rgba(245,158,11,0.07); border-color:#f59e0b; color:#fcd34d; margin-top:20px;">
+        ⚠️ <strong>MOCK_AI=true</strong> in .env.local bypasses ALL external API calls. Fake responses come from <code style="background:rgba(0,0,0,0.3); color:#fde68a;">lib/mock/mockAiResponse.ts</code>. Set to false when integrating real APIs.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ STUDENT FLOW ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-green">🎯</div>
+      Student Flow — Screen by Screen
+    </div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-url">/</div>
+        <h4>Login</h4>
+        <p>Student types their ID (e.g. S001)</p>
+        <div class="api-call">GET /api/students/lookup?code=S001</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-url">/location</div>
+        <h4>Location</h4>
+        <p>Pick UK 🇬🇧 / US 🇺🇸 / South Africa 🇿🇦</p>
+        <div class="api-call">No API call — local state</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-url">/situation</div>
+        <h4>Situation</h4>
+        <p>Restaurant / School / University (filtered by location)</p>
+        <div class="api-call">No API call — local state</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-url">/mission</div>
+        <h4>Mission Brief</h4>
+        <p>Shows character + random mission text. Click "Start" creates a DB session.</p>
+        <div class="api-call">POST /api/sessions</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-url">/conversation</div>
+        <h4>Conversation</h4>
+        <p>Chat with AI character. Each message is a "turn".</p>
+        <div class="api-call">POST /api/sessions/:id/turns</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-url">/results</div>
+        <h4>Results</h4>
+        <p>Score, confidence %, badges, teacher brief.</p>
+        <div class="api-call">GET /api/sessions/:id/results</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SESSION CONTEXT ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-amber">🧠</div>
+      SessionContext — Global State
+    </div>
+    <div class="card">
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+        <code>context/SessionContext.tsx</code> — A React Context that acts as the student's memory across all 6 screens.
+        Wrapped around all student pages by <code>app/(student)/layout.tsx</code>. Lives in browser memory only — cleared on refresh.
+      </p>
+      <div class="state-grid">
+        <div class="state-field"><span class="sf-name">studentCode</span><div><span class="sf-type">string</span><div class="sf-desc">e.g. "S001" — entered at login</div></div></div>
+        <div class="state-field"><span class="sf-name">studentId</span><div><span class="sf-type">string (cuid)</span><div class="sf-desc">DB row ID returned by lookup API</div></div></div>
+        <div class="state-field"><span class="sf-name">sessionId</span><div><span class="sf-type">string (cuid)</span><div class="sf-desc">Created by POST /api/sessions at mission screen</div></div></div>
+        <div class="state-field"><span class="sf-name">location / locationCode / locationFlag</span><div><span class="sf-type">string</span><div class="sf-desc">"United Kingdom" / "UK" / "🇬🇧"</div></div></div>
+        <div class="state-field"><span class="sf-name">situation</span><div><span class="sf-type">string</span><div class="sf-desc">"Restaurant" | "School" | "University"</div></div></div>
+        <div class="state-field"><span class="sf-name">character / characterEmoji</span><div><span class="sf-type">string</span><div class="sf-desc">"Oliver" / "🧑‍🍳" — from scenarios config</div></div></div>
+        <div class="state-field"><span class="sf-name">missionText</span><div><span class="sf-type">string</span><div class="sf-desc">Randomly picked from scenario's missionTexts array</div></div></div>
+        <div class="state-field"><span class="sf-name">score</span><div><span class="sf-type">number</span><div class="sf-desc">Cumulative points, increments per turn</div></div></div>
+        <div class="state-field"><span class="sf-name">mood</span><div><span class="sf-type">string (emoji)</span><div class="sf-desc">"😊" — changes based on AI gamification response</div></div></div>
+        <div class="state-field"><span class="sf-name">badges</span><div><span class="sf-type">string[]</span><div class="sf-desc">e.g. ["The Polite Customer"] — grows during conversation</div></div></div>
+      </div>
+      <div class="state-actions" style="margin-top:20px; background:#f8fafc; border-radius:8px; overflow:hidden; border:1px solid #f1f5f9;">
+        <div style="padding:10px 14px; background:#f1f5f9;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted);">Actions (functions any component can call)</span></div>
+        <div class="action-row"><span class="action-name">setStudentInfo(code, id)</span><span class="action-when">Called on login, after lookup API succeeds</span></div>
+        <div class="action-row"><span class="action-name">setLocation(code, name, flag)</span><span class="action-when">Called when student picks a location card</span></div>
+        <div class="action-row"><span class="action-name">setSituation(situation)</span><span class="action-when">Called when student picks a situation card</span></div>
+        <div class="action-row"><span class="action-name">startSession(sessionId, character, emoji, mission, voiceId)</span><span class="action-when">Called after POST /api/sessions succeeds at mission screen</span></div>
+        <div class="action-row"><span class="action-name">addPoints(n)</span><span class="action-when">Called per turn with pointsEarned from API response</span></div>
+        <div class="action-row"><span class="action-name">setMood(emoji)</span><span class="action-when">Called per turn with characterMood from API response</span></div>
+        <div class="action-row"><span class="action-name">addBadge(name)</span><span class="action-when">Called per turn for each item in achievements[] from API</span></div>
+        <div class="action-row"><span class="action-name">resetSession()</span><span class="action-when">"Play Again" on results screen — clears session but keeps studentCode/Id</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ API ENDPOINTS ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-teal">🔌</div>
+      API Endpoints
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Request Body / Params</th>
+            <th>Response</th>
+            <th>Source File</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method method-get">GET</span></td>
+            <td><span class="endpoint">/api/health</span><div class="endpoint-desc">Server liveness check</div></td>
+            <td>—</td>
+            <td><code>{ status, timestamp }</code></td>
+            <td><span class="source-file">api/health/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-get">GET</span></td>
+            <td><span class="endpoint">/api/students/lookup</span><div class="endpoint-desc">Validate a student ID</div></td>
+            <td><span class="endpoint-body">?code=S001</span></td>
+            <td><code>{ id, studentCode }</code></td>
+            <td><span class="source-file">api/students/lookup/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-get">GET</span></td>
+            <td><span class="endpoint">/api/students</span><div class="endpoint-desc">All students for teacher dashboard</div></td>
+            <td>—</td>
+            <td><code>StudentSummary[]</code> — last session date, confidence, history sparkline data</td>
+            <td><span class="source-file">api/students/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-get">GET</span></td>
+            <td><span class="endpoint">/api/students/:id</span><div class="endpoint-desc">Full analytics for one student</div></td>
+            <td>—</td>
+            <td><code>StudentDetail</code> — grammar errors, vocabulary, missed opportunities, all sessions</td>
+            <td><span class="source-file">api/students/[id]/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-post">POST</span></td>
+            <td><span class="endpoint">/api/sessions</span><div class="endpoint-desc">Create a new conversation session</div></td>
+            <td><span class="endpoint-body">{ studentCode, location, situation, character, missionText }</span></td>
+            <td><code>{ sessionId }</code></td>
+            <td><span class="source-file">api/sessions/route.ts</span></td>
+          </tr>
+          <tr style="background:#fffbeb;">
+            <td><span class="method method-post">POST</span></td>
+            <td><span class="endpoint">/api/sessions/:id/turns</span><div class="endpoint-desc">⭐ Core endpoint — one message exchange</div></td>
+            <td><span class="endpoint-body">{ message: string }</span></td>
+            <td><code>{ characterReply, pointsEarned, characterMood, achievements[], missionComplete }</code></td>
+            <td><span class="source-file">api/sessions/[id]/turns/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-get">GET</span></td>
+            <td><span class="endpoint">/api/sessions/:id/results</span><div class="endpoint-desc">Aggregate results at end of session</div></td>
+            <td>—</td>
+            <td><code>SessionResults</code> — totalScore, finalConfidence, badges, teacherBrief, turnCount</td>
+            <td><span class="source-file">api/sessions/[id]/results/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-post">POST</span></td>
+            <td><span class="endpoint">/api/stt</span><div class="endpoint-desc">Speech-to-text (Whisper proxy)</div></td>
+            <td><span class="endpoint-body">FormData: audio file</span></td>
+            <td><code>{ transcript: string }</code></td>
+            <td><span class="source-file">api/stt/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-post">POST</span></td>
+            <td><span class="endpoint">/api/tts</span><div class="endpoint-desc">Text-to-speech (ElevenLabs proxy)</div></td>
+            <td><span class="endpoint-body">{ text, voiceId? }</span></td>
+            <td>MP3 audio stream (<code>audio/mpeg</code>)</td>
+            <td><span class="source-file">api/tts/route.ts</span></td>
+          </tr>
+          <tr>
+            <td><span class="method method-post">POST</span></td>
+            <td><span class="endpoint">/api/admin/seed</span><div class="endpoint-desc">Seed S001-S010 (dev only)</div></td>
+            <td>—</td>
+            <td><code>{ message }</code></td>
+            <td><span class="source-file">api/admin/seed/route.ts</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">The turns endpoint is the most complex. It calls Claude (or mock), saves the turn to DB, updates session score, awards badges, then returns just what the frontend needs. All raw analytics are stored in <code>analyticsJson</code> as a JSON string in SQLite.</div>
+  </div>
+
+  <!-- ══════════ CLAUDE RESPONSE CONTRACT ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-purple">🤖</div>
+      Claude API Response Contract
+    </div>
+    <div class="card">
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">This is the exact JSON structure we expect back from the Claude proxy (or mock). The partner team is responsible for generating this format.</p>
+      <div class="grid-2">
+        <div>
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:10px;">Full Response Shape</div>
+          <div style="background:#0f172a; border-radius:10px; padding:20px; font-family:monospace; font-size:12px; color:#e2e8f0; line-height:1.9;">
+            <span style="color:#94a3b8;">{</span><br>
+            &nbsp;&nbsp;<span style="color:#7dd3fc;">"character_reply"</span>: <span style="color:#86efac;">"string"</span>,<br>
+            &nbsp;&nbsp;<span style="color:#7dd3fc;">"mission_complete"</span>: <span style="color:#fca5a5;">boolean</span>,<br>
+            &nbsp;&nbsp;<span style="color:#7dd3fc;">"teacher_analytics"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"grammar_points_observed"</span>: <span style="color:#fca5a5;">string[]</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"grammar_errors_frequent"</span>: <span style="color:#fca5a5;">string[]</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"target_vocabulary_used"</span>: <span style="color:#fca5a5;">string[]</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"missed_opportunities"</span>: <span style="color:#fca5a5;">string[]</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"confidence_score"</span>: <span style="color:#fca5a5;">number (0.0–1.0)</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"word_count"</span>: <span style="color:#fca5a5;">number</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"struggle_detected"</span>: <span style="color:#fca5a5;">boolean</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"teacher_brief"</span>: <span style="color:#86efac;">"string"</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span style="color:#7dd3fc;">"gamification"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"points_earned"</span>: <span style="color:#fca5a5;">number</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"character_mood"</span>: <span style="color:#86efac;">"😊"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#7dd3fc;">"achievements"</span>: <span style="color:#fca5a5;">string[]</span><br>
+            &nbsp;&nbsp;}<br>
+            <span style="color:#94a3b8;">}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:10px;">How Each Field Is Used</div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">character_reply</span> — Displayed as the character's chat bubble</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">mission_complete</span> — When true, hides text input, shows "See Results" button</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">confidence_score</span> — Averaged across all turns → shown on results screen</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">grammar_errors_frequent</span> — Aggregated across sessions → teacher bar chart</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">points_earned</span> — Added to session score in DB + SessionContext.score</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">character_mood</span> — Emoji shown in conversation header, animates on change</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">achievements</span> — Each badge saved to SessionBadge table + shown on results</div>
+            <div class="card-sm"><span style="color:var(--brand); font-weight:600;">teacher_brief</span> — Last turn's brief shown on results + student detail page</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ DATABASE ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-green">🗄️</div>
+      Database Schema
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Defined in <code>prisma/schema.prisma</code>. 4 tables. Relationships flow left → right: one Student has many Sessions, one Session has many Turns and many Badges.</p>
+    <div style="display:flex; align-items:flex-start; gap:8px; overflow-x:auto; padding-bottom:8px;">
+
+      <div class="db-table" style="min-width:220px;">
+        <div class="db-table-header"><span class="table-icon">👤</span><span class="table-name">Student</span></div>
+        <div class="db-field"><span class="db-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">String (cuid)</span></div>
+        <div class="db-field"><span class="db-idx">UQ</span><span class="db-field-name">studentCode</span><span class="db-field-type">String</span><span class="db-field-note">e.g. "S001"</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">createdAt</span><span class="db-field-type">DateTime</span></div>
+      </div>
+
+      <div class="db-rel-arrow">→<br><span style="font-size:10px;color:#94a3b8;">1:N</span></div>
+
+      <div class="db-table" style="min-width:240px;">
+        <div class="db-table-header"><span class="table-icon">💬</span><span class="table-name">Session</span></div>
+        <div class="db-field"><span class="db-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">String (cuid)</span></div>
+        <div class="db-field"><span class="db-fk">FK</span><span class="db-field-name">studentId</span><span class="db-field-type">String</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">location</span><span class="db-field-type">String</span><span class="db-field-note">"United Kingdom"</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">situation</span><span class="db-field-type">String</span><span class="db-field-note">"Restaurant"</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">character</span><span class="db-field-type">String</span><span class="db-field-note">"Oliver"</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">missionText</span><span class="db-field-type">String</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">startedAt</span><span class="db-field-type">DateTime</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">completedAt</span><span class="db-field-type">DateTime?</span><span class="db-field-note">null until done</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">totalScore</span><span class="db-field-type">Int</span><span class="db-field-note">increments per turn</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">finalConfidence</span><span class="db-field-type">Float?</span><span class="db-field-note">avg of all turns</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">turnCount</span><span class="db-field-type">Int</span></div>
+      </div>
+
+      <div class="db-rel-arrow">→<br><span style="font-size:10px;color:#94a3b8;">1:N</span></div>
+
+      <div class="db-table" style="min-width:250px;">
+        <div class="db-table-header"><span class="table-icon">🔄</span><span class="table-name">SessionTurn</span></div>
+        <div class="db-field"><span class="db-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">String (cuid)</span></div>
+        <div class="db-field"><span class="db-fk">FK</span><span class="db-field-name">sessionId</span><span class="db-field-type">String</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">turnNumber</span><span class="db-field-type">Int</span><span class="db-field-note">1, 2, 3…</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">studentMessage</span><span class="db-field-type">String</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">characterReply</span><span class="db-field-type">String</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">analyticsJson</span><span class="db-field-type">String</span><span class="db-field-note">full Claude JSON as text</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">pointsEarned</span><span class="db-field-type">Int</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">characterMood</span><span class="db-field-type">String</span><span class="db-field-note">emoji</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">wordCount</span><span class="db-field-type">Int</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">confidenceScore</span><span class="db-field-type">Float</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">struggleDetected</span><span class="db-field-type">Boolean</span></div>
+        <div class="db-field"><span style="width:20px"></span><span class="db-field-name">createdAt</span><span class="db-field-type">DateTime</span></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start; justify-content:flex-start; padding-top:8px;">
+        <div style="color:#94a3b8; font-size:20px; padding:8px;">↗</div>
+        <div class="db-table" style="min-width:200px;">
+          <div class="db-table-header"><span class="table-icon">🏅</span><span class="table-name">SessionBadge</span></div>
+          <div class="db-field"><span class="db-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">String (cuid)</span></div>
+          <div class="db-field"><span class="db-fk">FK</span><span class="db-field-name">sessionId</span><span class="db-field-type">String</span></div>
+          <div class="db-field"><span style="width:20px"></span><span class="db-field-name">badgeName</span><span class="db-field-type">String</span><span class="db-field-note">"The Polite Customer"</span></div>
+          <div class="db-field"><span style="width:20px"></span><span class="db-field-name">awardedAt</span><span class="db-field-type">DateTime</span></div>
+        </div>
+        <div style="color:#94a3b8; font-size:11px; padding:0 8px; text-align:center;">Also 1:N<br>from Session</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ FILE MAP ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-blue">📁</div>
+      File Map — What Every File Does
+    </div>
+    <div class="file-tree">
+<span class="ft-dir">app/</span>
+  <span class="ft-dir">(student)/</span>          <span class="ft-note">← Route GROUP — () means no URL segment added</span>
+    <span class="ft-brand">layout.tsx</span>        <span class="ft-note">← Wraps ALL student pages in &lt;SessionProvider&gt; and dark theme</span>
+    <span class="ft-brand">page.tsx</span>          <span class="ft-note">← URL: /  — Login screen (student code input)</span>
+    <span class="ft-brand">location/page.tsx</span> <span class="ft-note">← URL: /location — UK/US/ZA card picker</span>
+    <span class="ft-brand">situation/page.tsx</span><span class="ft-note">← URL: /situation — Restaurant/School/Uni (filtered by location)</span>
+    <span class="ft-brand">mission/page.tsx</span>  <span class="ft-note">← URL: /mission  — Character card + random mission text + POST /api/sessions</span>
+    <span class="ft-brand">conversation/page.tsx</span> <span class="ft-note">← URL: /conversation — Main chat screen, all gamification live here</span>
+    <span class="ft-brand">results/page.tsx</span>  <span class="ft-note">← URL: /results  — Score/badges/confidence card after session</span>
+
+  <span class="ft-dir">teacher/</span>
+    <span class="ft-green">page.tsx</span>          <span class="ft-note">← URL: /teacher  — Student list with confidence sparkbars</span>
+    <span class="ft-green">[studentId]/page.tsx</span><span class="ft-note">← URL: /teacher/:id — Deep analytics per student</span>
+
+  <span class="ft-dir">api/</span>                  <span class="ft-note">← Every route.ts here is a backend endpoint (runs server-side only)</span>
+    <span class="ft-teal">health/route.ts</span>   <span class="ft-note">← GET /api/health — liveness probe</span>
+    <span class="ft-teal">sessions/route.ts</span> <span class="ft-note">← POST /api/sessions — creates session row in DB</span>
+    <span class="ft-teal">sessions/[id]/turns/route.ts</span>   <span class="ft-note">← POST — THE core endpoint: Claude → DB → response</span>
+    <span class="ft-teal">sessions/[id]/results/route.ts</span> <span class="ft-note">← GET — aggregates final session stats</span>
+    <span class="ft-teal">students/route.ts</span> <span class="ft-note">← GET /api/students — teacher dashboard list</span>
+    <span class="ft-teal">students/lookup/route.ts</span>  <span class="ft-note">← GET ?code=S001 — validates student at login</span>
+    <span class="ft-teal">students/[id]/route.ts</span>    <span class="ft-note">← GET — full student analytics for teacher detail page</span>
+    <span class="ft-teal">stt/route.ts</span>      <span class="ft-note">← POST — proxies audio to Whisper, returns transcript</span>
+    <span class="ft-teal">tts/route.ts</span>      <span class="ft-note">← POST — proxies text to ElevenLabs, returns MP3 stream</span>
+    <span class="ft-teal">admin/seed/route.ts</span><span class="ft-note">← POST — creates S001-S010 (dev only, blocked in production)</span>
+
+  <span class="ft-file">layout.tsx</span>          <span class="ft-note">← Root layout: Inter font, PWA metadata (&lt;head&gt; tags), &lt;html lang&gt;</span>
+  <span class="ft-file">globals.css</span>         <span class="ft-note">← ALL Tailwind tokens (colors, radius, shadows) + animations</span>
+
+<span class="ft-dir">components/ui/</span>
+  <span class="ft-file">PrimaryButton.tsx</span>   <span class="ft-note">← Purple button, brand/teal/ghost variants, loading spinner</span>
+  <span class="ft-file">Card.tsx</span>            <span class="ft-note">← Dark card box, interactive/selected highlight states</span>
+  <span class="ft-file">ScreenShell.tsx</span>     <span class="ft-note">← Full-screen dark wrapper with iOS safe-area top padding</span>
+  <span class="ft-file">index.ts</span>            <span class="ft-note">← Re-exports all 3 so you can: import { PrimaryButton, Card } from "@/components/ui"</span>
+
+<span class="ft-dir">context/</span>
+  <span class="ft-file">SessionContext.tsx</span>  <span class="ft-note">← Student's in-memory state machine (see SessionContext section above)</span>
+
+<span class="ft-dir">lib/</span>
+  <span class="ft-dir">db/</span>
+    <span class="ft-file">index.ts</span>          <span class="ft-note">← Prisma client SINGLETON — one DB connection shared across all requests</span>
+    <span class="ft-dir">repositories/</span>     <span class="ft-note">← All DB queries live here, one file per model, imported by API routes</span>
+      <span class="ft-file">studentRepository.ts</span>  <span class="ft-note">← findStudentByCode, getAllStudentsWithSummary, getStudentDetail</span>
+      <span class="ft-file">sessionRepository.ts</span>  <span class="ft-note">← createSession, getSessionById, completeSession, addScoreToSession</span>
+      <span class="ft-file">turnRepository.ts</span>     <span class="ft-note">← createTurn, getTurnsBySession</span>
+      <span class="ft-file">badgeRepository.ts</span>    <span class="ft-note">← createBadge, getBadgesBySession</span>
+  <span class="ft-dir">config/</span>
+    <span class="ft-file">scenarios.ts</span>      <span class="ft-note">← All characters/locations/missions — static data, edit here to add scenarios</span>
+    <span class="ft-file">badges.ts</span>         <span class="ft-note">← Badge name → description map (shown on results screen)</span>
+  <span class="ft-dir">mock/</span>
+    <span class="ft-file">mockAiResponse.ts</span> <span class="ft-note">← Fake Claude responses for dev — cycles through 5 replies</span>
+  <span class="ft-file">utils.ts</span>            <span class="ft-note">← cn() for classnames, formatConfidence() → { percentage, label, colorClass }</span>
+
+<span class="ft-dir">prisma/</span>
+  <span class="ft-file">schema.prisma</span>       <span class="ft-note">← THE database schema — source of truth for all tables</span>
+
+<span class="ft-dir">types/</span>
+  <span class="ft-file">index.ts</span>            <span class="ft-note">← All TypeScript interfaces: ClaudeResponse, SessionResults, StudentDetail, etc.</span>
+
+<span class="ft-file">prisma.config.ts</span>        <span class="ft-note">← Prisma v7 CLI config (datasource URL) — different from runtime client</span>
+<span class="ft-file">.env.local</span>              <span class="ft-note">← MOCK_AI, DATABASE_URL, API keys — NEVER commit this file</span>
+<span class="ft-file">scripts/seed.ts</span>         <span class="ft-note">← Run with: npm run seed — creates S001-S010 in dev.db</span>
+    </div>
+  </div>
+
+  <!-- ══════════ ENV VARS ══════════ -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-rose">🔑</div>
+      Environment Variables
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="env-header">
+        <span>Variable</span>
+        <span>Used In</span>
+        <span>Purpose</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">MOCK_AI</span>
+        <span class="env-used">turns/route.ts, stt/route.ts, tts/route.ts</span>
+        <span class="env-desc"><code>true</code> = bypass all external APIs, use fake responses. Essential for frontend dev.</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">DATABASE_URL</span>
+        <span class="env-used">lib/db/index.ts, prisma.config.ts</span>
+        <span class="env-desc">Path to SQLite file. Default: <code>file:./dev.db</code>. Change for production (e.g. Turso libsql URL).</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">CLAUDE_PROXY_URL</span>
+        <span class="env-used">sessions/[id]/turns/route.ts</span>
+        <span class="env-desc">Partner team's endpoint that wraps Claude. We POST student message + session context here.</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">CLAUDE_API_KEY</span>
+        <span class="env-used">sessions/[id]/turns/route.ts</span>
+        <span class="env-desc">Sent as <code>Authorization: Bearer</code> header to Claude proxy.</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">WHISPER_API_URL</span>
+        <span class="env-used">api/stt/route.ts</span>
+        <span class="env-desc">Whisper speech-to-text endpoint URL.</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">WHISPER_API_KEY</span>
+        <span class="env-used">api/stt/route.ts</span>
+        <span class="env-desc">Auth key for Whisper endpoint.</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">ELEVENLABS_API_KEY</span>
+        <span class="env-used">api/tts/route.ts</span>
+        <span class="env-desc">Auth for ElevenLabs. Sent as <code>xi-api-key</code> header.</span>
+      </div>
+      <div class="env-row">
+        <span class="env-name">ELEVENLABS_DEFAULT_VOICE</span>
+        <span class="env-used">api/tts/route.ts</span>
+        <span class="env-desc">Default voice ID. Each scenario has a <code>voiceEnvKey</code> field you can use per-character.</span>
+      </div>
+    </div>
+    <div class="note">⚠️ Variables starting with <code>NEXT_PUBLIC_</code> are exposed to the browser. All keys above intentionally <strong>do not</strong> have that prefix — they stay server-side only.</div>
+  </div>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <div style="border-top:1px solid var(--border); padding-top:24px; text-align:center; color:var(--muted); font-size:13px;">
+    EduLingo Architecture Reference · Generated 2026-05-07
+  </div>
+
+</div>
+</body>
+</html>
