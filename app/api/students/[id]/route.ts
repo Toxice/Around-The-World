@@ -24,20 +24,18 @@ export async function GET(
 
       // Aggregate analytics from all turns in this session
       for (const turn of s.turns) {
-        try {
-          const analytics = JSON.parse(turn.analyticsJson);
-          for (const err of analytics.grammar_errors_frequent ?? []) {
-            grammarErrorMap.set(err, (grammarErrorMap.get(err) ?? 0) + 1);
-          }
-          for (const v of analytics.target_vocabulary_used ?? []) {
-            vocabularySet.add(v);
-          }
-          for (const m of analytics.missed_opportunities ?? []) {
-            missedOpportunitiesSet.add(m);
-          }
-          if (analytics.teacher_brief) teacherBrief = analytics.teacher_brief;
-          if (analytics.struggle_detected) struggleDetected = true;
-        } catch {}
+        const analytics = turn.analyticsJson as Record<string, unknown>;
+        for (const err of (analytics.grammar_errors_frequent as string[]) ?? []) {
+          grammarErrorMap.set(err, (grammarErrorMap.get(err) ?? 0) + 1);
+        }
+        for (const v of (analytics.target_vocabulary_used as string[]) ?? []) {
+          vocabularySet.add(v);
+        }
+        for (const m of (analytics.missed_opportunities as string[]) ?? []) {
+          missedOpportunitiesSet.add(m);
+        }
+        if (analytics.teacher_brief) teacherBrief = analytics.teacher_brief as string;
+        if (analytics.struggle_detected) struggleDetected = true;
       }
 
       return {

@@ -100,7 +100,7 @@ export default function ConversationPage() {
       for (const badge of data.achievements ?? []) addBadge(badge);
       if (data.missionComplete) setMissionComplete(true);
     } catch {
-      setMessages((prev) => [...prev, { role: "character", text: "Something went wrong. Let's continue." }]);
+      setMessages((prev) => [...prev, { role: "character", text: "Something went wrong. Let's continue.", id: Date.now() }]);
     } finally {
       setSending(false);
       setTimeout(() => inputRef.current?.focus(), 100);

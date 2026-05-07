@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
+import * as dotenv from "dotenv";
+
+dotenv.config({ path: ".env" });
+dotenv.config({ path: ".env.local" });
 
 const DEMO_STUDENT_CODES = [
   "S001", "S002", "S003", "S004", "S005",
@@ -7,11 +11,10 @@ const DEMO_STUDENT_CODES = [
 ];
 
 async function seed() {
-  const url = process.env.DATABASE_URL ?? "file:./dev.db";
-  const adapter = new PrismaBetterSqlite3({ url });
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
   const prisma = new PrismaClient({ adapter } as any);
 
-  console.log(`Seeding students into: ${url}`);
+  console.log(`Seeding students...`);
   let upserted = 0;
   for (const code of DEMO_STUDENT_CODES) {
     await prisma.student.upsert({

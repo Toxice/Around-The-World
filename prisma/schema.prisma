@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Student {
@@ -40,7 +40,7 @@ model SessionTurn {
   turnNumber       Int
   studentMessage   String
   characterReply   String
-  analyticsJson    String   // JSON blob stored as text for SQLite compatibility
+  analyticsJson    Json
   pointsEarned     Int      @default(0)
   characterMood    String   @default("😊")
   wordCount        Int      @default(0)

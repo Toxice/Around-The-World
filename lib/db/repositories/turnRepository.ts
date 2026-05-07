@@ -5,7 +5,7 @@ export async function createTurn(data: {
   turnNumber: number;
   studentMessage: string;
   characterReply: string;
-  analyticsJson: string;
+  analyticsJson: object;
   pointsEarned: number;
   characterMood: string;
   wordCount: number;

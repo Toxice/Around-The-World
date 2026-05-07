@@ -17,17 +17,15 @@ export async function GET(
     const turns = session.turns;
     const avgConfidence =
       turns.length > 0
-        ? turns.reduce((sum, t) => sum + t.confidenceScore, 0) / turns.length
+        ? turns.reduce((sum: number, t) => sum + t.confidenceScore, 0) / turns.length
         : 0;
 
     // Aggregate teacher brief from last turn
     let teacherBrief = "";
     if (turns.length > 0) {
       const lastTurn = turns[turns.length - 1];
-      try {
-        const analytics = JSON.parse(lastTurn.analyticsJson);
-        teacherBrief = analytics.teacher_brief ?? "";
-      } catch {}
+      const analytics = lastTurn.analyticsJson as Record<string, unknown>;
+      teacherBrief = (analytics.teacher_brief as string) ?? "";
     }
 
     // Mark session completed if not already

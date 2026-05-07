@@ -84,7 +84,7 @@ Rules:
         { role: "user", parts: [{ text: message }] },
       ];
 
-      const model = process.env.GOOGLE_AI_MODEL ?? "gemini-3.1-flash-lite-preview";
+      const model = process.env.GOOGLE_AI_MODEL ?? "gemini-2.5-flash";
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
         {
@@ -123,7 +123,7 @@ Rules:
       turnNumber,
       studentMessage: message,
       characterReply: aiResponse.character_reply,
-      analyticsJson: JSON.stringify(ta),
+      analyticsJson: ta,
       pointsEarned: gm.points_earned,
       characterMood: gm.character_mood,
       wordCount: ta.word_count,
