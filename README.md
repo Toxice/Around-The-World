@@ -1,3 +1,8 @@
+<img width="501" height="501" alt="VOYA (1)" src="https://github.com/user-attachments/assets/87e7b21e-673c-4c12-b920-d69097b09447" />
+
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
